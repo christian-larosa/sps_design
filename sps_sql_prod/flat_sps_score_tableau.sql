@@ -10,7 +10,8 @@
 --   fill_rate
 --   otd
 --   supplier_non_fulfilled_order_qty
--- Ingredientes añadidos desde sps_listed_sku:
+-- Ingredientes añadidos desde sps_efficiency:
+--   sku_listed → listed_skus_efficiency (para comparar con listed_skus)
 --   zero_movers
 --   slow_movers
 --   efficient_movers
@@ -49,9 +50,10 @@ SELECT o.*,
  slrm.* EXCEPT (global_entity_id, time_period, time_granularity, division_type, supplier_level, entity_key, brand_sup, net_purchase),
  se.* EXCEPT (global_entity_id, time_period, time_granularity, division_type, supplier_level, entity_key, brand_sup),
  listed.listed_skus,
- listed.zero_movers,
- listed.slow_movers,
- listed.efficient_movers,
+ se.sku_listed AS listed_skus_efficiency,
+ se.zero_movers,
+ se.slow_movers,
+ se.efficient_movers,
  shrink.spoilage_value,
  shrink.retail_revenue,
  shrink.spoilage_rate,
