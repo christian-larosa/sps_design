@@ -1,21 +1,18 @@
 -- ============================================================
--- SPS DEBUG | FINAL | sps_score_tableau with purchase_order and price metrics
+-- SPS DEBUG | FINAL | sps_score_tableau with ALL ingredientes
 -- ============================================================
--- Ingredientes añadidos desde sps_price_index:
+-- Ingredientes desde sps_price_index:
 --   price_index_numerator: SUM(median_bp_index * sku_gpv_eur)
 --   price_index_weight: SUM(sku_gpv_eur)
---   [En Tableau: median_price_index = SUM(price_index_numerator) / SUM(price_index_weight)]
--- Ingredientes añadidos desde sps_purchase_order:
---   on_time_orders
---   total_received_qty_per_po_order
---   total_demanded_qty_per_po_order
---   total_cancelled_po_orders
---   total_non_cancelled__po_orders
---   fill_rate
---   otd
---   supplier_non_fulfilled_order_qty
--- sps_efficiency trae: zero_movers, slow_movers, efficient_movers, sku_listed (+ otros)
---   se.sku_listed renombrado como listed_skus_efficiency para comparar con listed_skus
+-- Ingredientes desde sps_days_payable:
+--   stock_value_eur, cogs_monthly_eur, days_in_month, days_in_quarter
+--   [doh_monthly = SUM(stock_value_eur) / (SUM(cogs_monthly_eur) / MAX(days_in_month))]
+-- Ingredientes desde sps_purchase_order:
+--   total_po_orders, total_compliant_po_orders
+--   total_received_qty_ALL, total_demanded_qty_ALL
+--   (+ on_time_orders, fill_rate, otd, supplier_non_fulfilled_order_qty)
+-- Ingredientes desde sps_efficiency:
+--   zero_movers, slow_movers, efficient_movers, sku_listed (como listed_skus_efficiency)
 
 CREATE OR REPLACE TABLE `dh-darkstores-live.csm_automated_tables.sps_score_tableau`
 CLUSTER BY
@@ -49,6 +46,10 @@ SELECT o.*,
  dpo.payment_days,
  dpo.doh,
  dpo.dpo,
+ dpo.stock_value_eur,
+ dpo.cogs_monthly_eur,
+ dpo.days_in_month,
+ dpo.days_in_quarter,
  sfm.* EXCEPT (global_entity_id, time_period, time_granularity, division_type, supplier_level, entity_key, brand_sup),
  slrm.* EXCEPT (global_entity_id, time_period, time_granularity, division_type, supplier_level, entity_key, brand_sup, net_purchase),
  se.* EXCEPT (global_entity_id, time_period, time_granularity, division_type, supplier_level, entity_key, brand_sup),
@@ -66,7 +67,11 @@ SELECT o.*,
  po.total_non_cancelled__po_orders,
  po.fill_rate,
  po.otd,
- po.supplier_non_fulfilled_order_qty
+ po.supplier_non_fulfilled_order_qty,
+ po.total_po_orders,
+ po.total_compliant_po_orders,
+ po.total_received_qty_ALL,
+ po.total_demanded_qty_ALL
 FROM all_keys AS o
 LEFT JOIN `dh-darkstores-live.csm_automated_tables.sps_price_index` AS p
   ON o.global_entity_id = p.global_entity_id AND o.time_period = p.time_period AND o.time_granularity = p.time_granularity AND o.division_type = p.division_type AND o.supplier_level = p.supplier_level AND o.entity_key = p.entity_key AND o.brand_sup = p.brand_sup

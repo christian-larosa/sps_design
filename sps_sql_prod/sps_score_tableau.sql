@@ -34,6 +34,10 @@ SELECT o.*,
  dpo.payment_days,
  dpo.doh,
  dpo.dpo,
+ dpo.stock_value_eur,
+ dpo.cogs_monthly_eur,
+ dpo.days_in_month,
+ dpo.days_in_quarter,
  sfm.* EXCEPT (global_entity_id, time_period, time_granularity, division_type, supplier_level, entity_key, brand_sup),
  slrm.* EXCEPT (global_entity_id, time_period, time_granularity, division_type, supplier_level, entity_key, brand_sup, net_purchase),
  se.* EXCEPT (global_entity_id, time_period, time_granularity, division_type, supplier_level, entity_key, brand_sup),
@@ -51,7 +55,11 @@ SELECT o.*,
  po.total_non_cancelled__po_orders,
  po.fill_rate,
  po.otd,
- po.supplier_non_fulfilled_order_qty
+ po.supplier_non_fulfilled_order_qty,
+ po.total_po_orders,
+ po.total_compliant_po_orders,
+ po.total_received_qty_ALL,
+ po.total_demanded_qty_ALL
 FROM all_keys AS o
 LEFT JOIN `{{ params.project_id }}.{{ params.dataset.cl }}.sps_price_index` AS p
   ON o.global_entity_id = p.global_entity_id AND o.time_period = p.time_period AND o.time_granularity = p.time_granularity AND o.division_type = p.division_type AND o.supplier_level = p.supplier_level AND o.entity_key = p.entity_key AND o.brand_sup = p.brand_sup
