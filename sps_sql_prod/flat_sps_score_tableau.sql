@@ -10,11 +10,8 @@
 --   fill_rate
 --   otd
 --   supplier_non_fulfilled_order_qty
--- Ingredientes añadidos desde sps_efficiency:
---   sku_listed → listed_skus_efficiency (para comparar con listed_skus)
---   zero_movers
---   slow_movers
---   efficient_movers
+-- sps_efficiency trae: zero_movers, slow_movers, efficient_movers, sku_listed (+ otros)
+--   se.sku_listed renombrado como listed_skus_efficiency para comparar con listed_skus
 
 CREATE OR REPLACE TABLE `dh-darkstores-live.csm_automated_tables.sps_score_tableau`
 CLUSTER BY
@@ -51,9 +48,6 @@ SELECT o.*,
  se.* EXCEPT (global_entity_id, time_period, time_granularity, division_type, supplier_level, entity_key, brand_sup),
  listed.listed_skus,
  se.sku_listed AS listed_skus_efficiency,
- se.zero_movers,
- se.slow_movers,
- se.efficient_movers,
  shrink.spoilage_value,
  shrink.retail_revenue,
  shrink.spoilage_rate,
