@@ -1,6 +1,10 @@
 -- ============================================================
--- SPS DEBUG | FINAL | sps_score_tableau with purchase_order metrics
+-- SPS DEBUG | FINAL | sps_score_tableau with purchase_order and price metrics
 -- ============================================================
+-- Ingredientes añadidos desde sps_price_index:
+--   price_index_numerator: SUM(median_bp_index * sku_gpv_eur)
+--   price_index_weight: SUM(sku_gpv_eur)
+--   [En Tableau: median_price_index = SUM(price_index_numerator) / SUM(price_index_weight)]
 -- Ingredientes añadidos desde sps_purchase_order:
 --   on_time_orders
 --   total_received_qty_per_po_order
@@ -40,6 +44,8 @@ SELECT DISTINCT * FROM (
 ))
 SELECT o.*,
  p.median_price_index,
+ p.price_index_numerator,
+ p.price_index_weight,
  dpo.payment_days,
  dpo.doh,
  dpo.dpo,

@@ -29,6 +29,8 @@ SELECT DISTINCT * FROM (
 ))
 SELECT o.*,
  p.median_price_index,
+ p.price_index_numerator,
+ p.price_index_weight,
  dpo.payment_days,
  dpo.doh,
  dpo.dpo,
