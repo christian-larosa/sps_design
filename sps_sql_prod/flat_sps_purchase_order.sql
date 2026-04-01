@@ -1,12 +1,12 @@
 -- ============================================================
 -- SPS DEBUG | MULTIPLE | 6.2 sps_purchase_order
 -- ============================================================
+-- Hardcoded para debug: país=PE, lookback de 4 trimestres
 -- Ingredientes de debugging añadidos:
 --   total_po_orders: count de todas las órdenes
 --   total_compliant_po_orders: órdenes que pasan is_compliant_flag
 --   total_received_qty_ALL: qty total recibida (sin filtro de done)
 --   total_demanded_qty_ALL: qty total demandada (sin filtro de done)
--- Esto permite validar el denominador y numerador de fill_rate, otd
 
 CREATE OR REPLACE TABLE `dh-darkstores-live.csm_automated_tables.sps_purchase_order`
 CLUSTER BY
@@ -17,7 +17,7 @@ WITH date_config AS (
   SELECT
     DATE_SUB(DATE_TRUNC(CURRENT_DATE(), QUARTER), INTERVAL 4 QUARTER) AS lookback_limit
 )
-  SELECT
+SELECT
     global_entity_id,
     CASE WHEN GROUPING(month) = 0 THEN CAST(month AS STRING) ELSE quarter_year END AS time_period,
     CASE

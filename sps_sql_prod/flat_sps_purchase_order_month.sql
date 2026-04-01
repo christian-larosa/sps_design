@@ -1,29 +1,18 @@
 -- ============================================================
 -- SPS DEBUG | MULTIPLE | 6.1 sps_purchase_order_month
 -- ============================================================
--- Ingredientes de debugging añadidos:
---   COUNT(DISTINCT po_order_id) AS total_po_orders
---   COUNT(DISTINCT(CASE WHEN cancel_reason IS NOT NULL THEN po_order_id END)) AS total_cancelled_po_orders_raw
---   Desgloses adicionales para validar lógica de aggregations
+-- Hardcoded para debug: país=PE, lookback de 4 trimestres
 
+CREATE OR REPLACE TABLE `dh-darkstores-live.csm_automated_tables.sps_purchase_order_month`
+AS
 WITH
 date_in AS (
-  SELECT
-    {%- if not params.backfill %}
-    DATE(DATE_TRUNC(DATE_SUB('{{ next_ds }}', INTERVAL {{ params.stream_look_back_days }} DAY), MONTH)) AS date_in
-    {%- elif params.is_backfill_chunks_enabled %}
-    DATE(DATE_TRUNC(CAST('{{ params.backfill_start_date }}' AS DATE), MONTH)) AS date_in
-    {%- endif %}
-)
-, date_fin AS (
-  SELECT
-    {%- if not params.backfill %}
-    CAST('{{ next_ds }}' AS DATE) AS date_fin
-    {%- elif params.is_backfill_chunks_enabled %}
-    CAST('{{ params.backfill_end_date }}' AS DATE) AS date_fin
-    {%- endif %}
-)
- , tmp_sp_product AS (
+  SELECT DATE('2025-10-01') AS date_in
+),
+date_fin AS (
+  SELECT CURRENT_DATE() AS date_fin
+),
+tmp_sp_product AS (
   SELECT
     sp.global_entity_id,
     sp.country_code,
@@ -35,9 +24,9 @@ date_in AS (
     COALESCE(sp.level_two, '_unknown_') AS l2_master_category,
     COALESCE(sp.level_three, '_unknown_') AS l3_master_category,
     ANY_VALUE(sp.sup_id_parent) AS principal_supplier_id,
-  FROM `{{ params.project_id }}.{{ params.dataset.cl }}.sps_product` AS sp
+  FROM `dh-darkstores-live.csm_automated_tables.sps_product` AS sp
   WHERE TRUE
-    AND REGEXP_CONTAINS(sp.country_code, {{ params.param_country_code }})
+    AND sp.country_code = 'pe'
   GROUP BY 1,2,3,4,5,6,7,8,9
 ),
 tmp_supplier_performance_agg AS (
@@ -66,22 +55,23 @@ tmp_supplier_performance_agg AS (
     CAST(CONCAT('Q', EXTRACT(QUARTER FROM spr.create_date), '-', EXTRACT(YEAR FROM spr.create_date)) AS STRING) AS quarter_year,
     SUM(spr.total_received_qty_per_order) AS total_received_qty_per_order,
     SUM(spr.total_demanded_qty_per_order) AS total_demanded_qty_per_order,
-  FROM `{{ params.project_id }}.{{ params.dataset.rl }}.supplier_performance_report` AS spr
+  FROM `fulfillment-dwh-production.rl_dmart.supplier_performance_report` AS spr
   WHERE TRUE
-    AND REGEXP_CONTAINS(spr.country_code, {{ params.param_country_code }})
+    AND spr.country_code = 'pe'
     AND (spr.create_date BETWEEN (SELECT date_in FROM date_in).date_in AND (SELECT date_fin FROM date_fin).date_fin)
   GROUP BY ALL
 )
-  SELECT
-    CASE
-      WHEN DATE_TRUNC(CAST(spr_agg.month AS DATE), MONTH) = DATE_TRUNC(CAST('{{ next_ds }}' AS DATE), MONTH)
-      THEN CAST('{{ next_ds }}' AS DATE)
-        ELSE LAST_DAY(CAST(spr_agg.month AS DATE))
-    END AS partition_month,
-    spr_agg.*,
-    sp.* EXCEPT (country_code, sku_id, warehouse_id, global_entity_id)
-  FROM tmp_supplier_performance_agg AS spr_agg
-  LEFT JOIN tmp_sp_product AS sp
-    ON sp.sku_id = spr_agg.sku_id
-    AND sp.country_code = spr_agg.country_code
-    AND sp.warehouse_id = spr_agg.warehouse_id
+SELECT
+  CASE
+    WHEN DATE_TRUNC(CAST(spr_agg.month AS DATE), MONTH) = DATE_TRUNC(CURRENT_DATE(), MONTH)
+    THEN CURRENT_DATE()
+      ELSE LAST_DAY(CAST(spr_agg.month AS DATE))
+  END AS partition_month,
+  spr_agg.*,
+  sp.* EXCEPT (country_code, sku_id, warehouse_id, global_entity_id)
+FROM tmp_supplier_performance_agg AS spr_agg
+LEFT JOIN tmp_sp_product AS sp
+  ON sp.sku_id = spr_agg.sku_id
+  AND sp.country_code = spr_agg.country_code
+  AND sp.warehouse_id = spr_agg.warehouse_id
+;
