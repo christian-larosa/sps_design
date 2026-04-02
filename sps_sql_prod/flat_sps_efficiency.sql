@@ -50,19 +50,49 @@ WITH date_config AS (
         ELSE CONCAT(SUBSTR(quarter_year, 1, 2), '-', CAST(CAST(SUBSTR(quarter_year, 4) AS INT64) - 1 AS STRING))
     END AS last_year_time_period,
     COUNT(DISTINCT sku_id) sku_listed,
-    COUNT(DISTINCT CASE WHEN date_diff >=90 THEN sku_id END) AS sku_mature,
-    COUNT(DISTINCT CASE WHEN date_diff <90 AND date_diff >30 THEN sku_id END) AS sku_probation,
-    COUNT(DISTINCT CASE WHEN date_diff <=30 THEN sku_id END) AS sku_new,
-    COUNT(DISTINCT CASE WHEN date_diff >=90 AND ((avg_qty_sold = 0 OR avg_qty_sold IS NULL) AND new_availability = 1)  THEN sku_id END) zero_movers,
-    COUNT(DISTINCT CASE WHEN date_diff >=90 AND ((avg_qty_sold = 0 OR avg_qty_sold IS NULL) AND (new_availability < 1 OR new_availability IS NULL))  THEN sku_id END) la_zero_movers,
-    COUNT(DISTINCT CASE WHEN date_diff >=90 AND (avg_qty_sold < 1 AND avg_qty_sold > 0) AND (new_availability >= 0.8) THEN sku_id END) slow_movers,
-    COUNT(DISTINCT CASE WHEN date_diff >=90 AND (avg_qty_sold < 1 AND avg_qty_sold > 0) AND (new_availability < 0.8 OR new_availability IS NULL)  THEN sku_id END) la_slow_movers,
-    COUNT(DISTINCT CASE WHEN date_diff >=90 AND (avg_qty_sold >= 1)  THEN sku_id END) efficient_movers,
-    COUNT(DISTINCT CASE WHEN date_diff <30 AND (avg_qty_sold = 0 OR avg_qty_sold IS NULL)  THEN sku_id END) new_zero_movers,
-    COUNT(DISTINCT CASE WHEN date_diff <30 AND (avg_qty_sold < 1)  THEN sku_id END) new_slow_movers,
-    COUNT(DISTINCT CASE WHEN date_diff <90 AND (avg_qty_sold >= 1)  THEN sku_id END) new_efficient_movers,
+    COUNT(DISTINCT CASE WHEN updated_sku_age >= 90 THEN sku_id END) AS sku_mature,
+    COUNT(DISTINCT CASE WHEN updated_sku_age < 90 AND updated_sku_age > 30 THEN sku_id END) AS sku_probation,
+    COUNT(DISTINCT CASE WHEN updated_sku_age <= 30 THEN sku_id END) AS sku_new,
+    COUNT(DISTINCT CASE
+      WHEN updated_sku_age >= 90
+      AND sku_efficiency = 'zero_mover'
+      AND ROUND(new_availability, 3) = 1
+      THEN sku_id END) zero_movers,
+    COUNT(DISTINCT CASE
+      WHEN updated_sku_age >= 90
+      AND sku_efficiency = 'zero_mover'
+      AND (ROUND(new_availability, 3) < 1 OR new_availability IS NULL)
+      THEN sku_id END) la_zero_movers,
+    COUNT(DISTINCT CASE
+      WHEN updated_sku_age >= 90
+      AND sku_efficiency = 'slow_mover'
+      AND ROUND(new_availability, 3) >= 0.8
+      THEN sku_id END) slow_movers,
+    COUNT(DISTINCT CASE
+      WHEN updated_sku_age >= 90
+      AND sku_efficiency = 'slow_mover'
+      AND (ROUND(new_availability, 3) < 0.8 OR new_availability IS NULL)
+      THEN sku_id END) la_slow_movers,
+    COUNT(DISTINCT CASE
+      WHEN updated_sku_age >= 90
+      AND sku_efficiency = 'efficient_sku'
+      THEN sku_id END) efficient_movers,
+    COUNT(DISTINCT CASE
+      WHEN updated_sku_age < 30
+      AND sku_efficiency = 'zero_mover'
+      THEN sku_id END) new_zero_movers,
+    COUNT(DISTINCT CASE
+      WHEN updated_sku_age < 30
+      AND sku_efficiency = 'slow_mover'
+      THEN sku_id END) new_slow_movers,
+    COUNT(DISTINCT CASE
+      WHEN updated_sku_age < 90
+      AND sku_efficiency = 'efficient_sku'
+      THEN sku_id END) new_efficient_movers,
     ROUND(SUM(sold_items),1) AS sold_items,
-    ROUND(SUM(gpv_eur),1) AS gpv_eur
+    ROUND(SUM(gpv_eur),1) AS gpv_eur,
+    SUM(numerator_new_avail) AS numerator_new_avail,
+    SUM(denom_new_avail) AS denom_new_avail
    FROM `dh-darkstores-live.csm_automated_tables.sps_efficiency_month`
    WHERE CAST(month AS DATE) >= (SELECT lookback_limit FROM date_config)
 GROUP BY GROUPING SETS (

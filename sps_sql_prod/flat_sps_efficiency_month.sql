@@ -44,21 +44,48 @@ tmp_efficiency AS (
    e.global_entity_id,
    e.warehouse_id,
    e.sku AS sku_id,
-   e.date_diff,
+   e.updated_sku_age,
+   e.sku_efficiency,
    e.avg_qty_sold,
    e.new_availability,
+   e.numerator_new_avail,
+   e.denom_new_avail,
+   e.available_hours,
+   e.potential_hours,
+   e.is_listed,
+   e.sku_status,
    e.sold_items,
    e.gpv_eur,
    STRING(e.month) AS month,
    CAST(CONCAT('Q', EXTRACT(QUARTER FROM e.month), '-', EXTRACT(YEAR FROM e.month)) AS STRING) AS quarter_year,
- FROM `fulfillment-dwh-production.rl_dmart._aqs_v5_sku_efficiency_detail` AS e
+ FROM `fulfillment-dwh-production.rl_dmart.sku_efficiency_detail_v2` AS e
  WHERE TRUE
-    AND (DATE_TRUNC(e.partition_month, MONTH) BETWEEN (SELECT date_in FROM date_in).date_in AND (SELECT date_fin FROM date_fin).date_fin)
+    AND (DATE(e.partition_month) BETWEEN (SELECT date_in FROM date_in).date_in AND (SELECT date_fin FROM date_fin).date_fin)
     AND e.global_entity_id = 'PY_PE'
 )
-SELECT 
-  LAST_DAY(CAST(te.month AS DATE)) AS partition_month,
-  te.*, 
+SELECT
+  CASE
+    WHEN DATE_TRUNC(CAST(te.month AS DATE), MONTH) = DATE_TRUNC(CURRENT_DATE(), MONTH)
+    THEN CURRENT_DATE()
+    ELSE LAST_DAY(CAST(te.month AS DATE))
+  END AS partition_month,
+  te.month,
+  te.quarter_year,
+  te.global_entity_id,
+  te.warehouse_id,
+  te.sku_id,
+  te.updated_sku_age,
+  te.sku_efficiency,
+  te.is_listed,
+  te.sku_status,
+  te.avg_qty_sold,
+  te.numerator_new_avail,
+  te.denom_new_avail,
+  te.available_hours,
+  te.potential_hours,
+  te.new_availability,
+  te.sold_items,
+  te.gpv_eur,
   COALESCE(sp_exact.country_code, sp_fallback.country_code) AS country_code,
   COALESCE(sp_exact.supplier_id, sp_fallback.supplier_id) AS supplier_id,
   COALESCE(sp_exact.supplier_name, sp_fallback.supplier_name) AS supplier_name,
@@ -67,18 +94,18 @@ SELECT
   COALESCE(sp_exact.l1_master_category, sp_fallback.l1_master_category) AS l1_master_category,
   COALESCE(sp_exact.l2_master_category, sp_fallback.l2_master_category) AS l2_master_category,
   COALESCE(sp_exact.l3_master_category, sp_fallback.l3_master_category) AS l3_master_category,
-  COALESCE(sp_exact.principal_supplier_id, sp_fallback.principal_supplier_id) AS principal_supplier_id,
-  -- COALESCE(sp_exact.last_updated, sp_fallback.last_updated) AS product_info_updated_at
+  COALESCE(sp_exact.principal_supplier_id, sp_fallback.principal_supplier_id) AS principal_supplier_id
 FROM tmp_efficiency AS te
--- Primary Join: Exact Warehouse match
+-- Join exacto por warehouse (mismo que el original)
 LEFT JOIN tmp_sp_product AS sp_exact
   ON te.sku_id = sp_exact.sku_id
   AND te.global_entity_id = sp_exact.global_entity_id
   AND te.warehouse_id = sp_exact.warehouse_id
--- Fallback Join: Latest known info for this SKU in this country
+-- Fallback: SKU más reciente en cualquier warehouse del país
 LEFT JOIN ranked_global_product AS sp_fallback
   ON te.sku_id = sp_fallback.sku_id
   AND te.global_entity_id = sp_fallback.global_entity_id
   AND sp_fallback.recency_rank = 1
+  AND sp_exact.sku_id IS NULL
 WHERE TRUE;
 
