@@ -52,7 +52,28 @@ SELECT o.*,
  dpo.days_in_quarter,
  sfm.* EXCEPT (global_entity_id, time_period, time_granularity, division_type, supplier_level, entity_key, brand_sup),
  slrm.* EXCEPT (global_entity_id, time_period, time_granularity, division_type, supplier_level, entity_key, brand_sup, net_purchase),
- se.* EXCEPT (global_entity_id, time_period, time_granularity, division_type, supplier_level, entity_key, brand_sup),
+ -- ── PORTFOLIO CLUSTER (source: sps_efficiency, AQS v7 methodology) ──────────
+ -- Denominators
+ se.sku_listed,       -- Universe of listed SKUs for the supplier. Denominator for % zero and % slow movers. Aligns with COUNT(DISTINCT sku WHERE is_listed) in sku_efficiency_detail_v2.
+ se.sku_mature,       -- Listed SKUs with updated_sku_age >= 90 days (with reset logic). Denominator for efficiency %. Aligns with AQS v7 definition.
+ se.sku_new,          -- Listed SKUs with updated_sku_age <= 30 days. Used for Newness % = sku_new / sku_listed. Aligns with assortment_quality_scorecard_v7.
+ se.sku_probation,    -- Listed SKUs with updated_sku_age between 31-89 days. Used as part of efficient_listings denominator = (sku_new + sku_probation). Aligns with assortment_quality_scorecard_v7.
+
+ -- Numerators (mature SKUs only)
+ se.zero_movers,      -- Mature SKUs with no sales AND availability = 1 (stock present). Pure demand problem. Numerator for: % zero movers and efficiency = 1 - (zero + slow) / mature. Aligns with AQS v7.
+ se.slow_movers,      -- Mature SKUs selling below category threshold AND availability >= 0.8. Threshold varies by category_l0 (not fixed at 1). Numerator for: % slow movers and efficiency formula. Aligns with AQS v7.
+ se.efficient_movers, -- Mature SKUs selling at or above category threshold. Retained for reference — AQS v7 calculates efficiency as 1-(zero+slow)/mature, not efficient/mature directly.
+
+ -- Availability ingredients (never use new_availability directly in Tableau)
+ se.numerator_new_avail, -- SUM(available_events_weightage * sales_forecast_qty_corr). Ingredient for weighted availability. Aditivo — agregar con SUM en cualquier nivel.
+ se.denom_new_avail,     -- SUM(total_events_weightage * sales_forecast_qty_corr) with NULLIF(0). Ingredient for weighted availability. Tableau formula: SUM(numerator) / SUM(denom).
+
+ -- EXCLUDED FIELDS (do not restore):
+ -- la_zero_movers, la_slow_movers: low availability movers — supplier can blame stock, not useful for negotiation argument
+ -- new_zero_movers, new_slow_movers, new_efficient_movers: non-mature SKUs — unfair to penalize supplier for SKUs still in ramp-up
+ -- sold_items, gpv_eur: duplicated from sps_financial_metrics — use Net_Sales fields instead
+ -- last_year_time_period: internal join key, not a metric
+ -- new_availability: pre-calculated ratio — always use ingredients in Tableau to avoid aggregation errors
  listed.listed_skus,
  se.sku_listed AS listed_skus_efficiency,
  shrink.spoilage_value_eur,
