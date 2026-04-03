@@ -68,6 +68,10 @@ SELECT o.*,
  se.numerator_new_avail, -- SUM(available_events_weightage * sales_forecast_qty_corr). Ingredient for weighted availability. Aditivo — agregar con SUM en cualquier nivel.
  se.denom_new_avail,     -- SUM(total_events_weightage * sales_forecast_qty_corr) with NULLIF(0). Ingredient for weighted availability. Tableau formula: SUM(numerator) / SUM(denom).
 
+ -- Efficiency weighted ingredient (AQS v7 methodology)
+ se.weight_efficiency, -- GPV-weighted efficiency numerator. Tableau: SUM(weight_efficiency)/SUM(gpv_eur)
+ se.gpv_eur,           -- GPV denominator for weighted efficiency aggregation.
+
  -- EXCLUDED FIELDS (do not restore):
  -- la_zero_movers, la_slow_movers: low availability movers — supplier can blame stock, not useful for negotiation argument
  -- new_zero_movers, new_slow_movers, new_efficient_movers: non-mature SKUs — unfair to penalize supplier for SKUs still in ramp-up
