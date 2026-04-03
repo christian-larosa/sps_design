@@ -11,23 +11,23 @@ date_fin AS (
   SELECT CURRENT_DATE() AS date_fin
 ),
 tmp_sp_product AS (
- SELECT
-   sp.global_entity_id,
-  --  sp.country_code,
-   sp.sku_id,
-   COALESCE(CAST(sp.supplier_id AS STRING), '_unknown_') AS supplier_id,
-   sp.sup_id_parent AS principal_supplier_id,
-   COALESCE(sp.brand_name, '_unknown_') AS brand_name,
-   COALESCE(sp.brand_owner_name, '_unknown_') AS brand_owner_name,
-   sp.global_supplier_id,
-   COALESCE(sp.level_one, '_unknown_') AS l1_master_category,
-   COALESCE(sp.level_two, '_unknown_') AS l2_master_category,
-   COALESCE(sp.level_three, '_unknown_') AS l3_master_category,
-  --  MAX(sp.updated_at) AS last_updated,
- FROM `dh-darkstores-live.csm_automated_tables.sps_product` AS sp
- WHERE TRUE
-  AND sp.global_entity_id = 'PY_PE'
- GROUP BY 1,2,3,4,5,6,7,8,9,10
+  SELECT
+    sp.global_entity_id,
+    sp.sku_id,
+    COALESCE(MAX(CAST(sp.supplier_id AS STRING)), '_unknown_') AS supplier_id,
+    MAX(sp.sup_id_parent)                                      AS principal_supplier_id,
+    COALESCE(MAX(sp.brand_name), '_unknown_')                  AS brand_name,
+    COALESCE(MAX(sp.brand_owner_name), '_unknown_')            AS brand_owner_name,
+    MAX(sp.global_supplier_id)                                 AS global_supplier_id,
+    COALESCE(MAX(sp.level_one), '_unknown_')                   AS l1_master_category,
+    COALESCE(MAX(sp.level_two), '_unknown_')                   AS l2_master_category,
+    COALESCE(MAX(sp.level_three), '_unknown_')                 AS l3_master_category
+  FROM `dh-darkstores-live.csm_automated_tables.sps_product` AS sp
+  WHERE TRUE
+    AND sp.global_entity_id = 'PY_PE'
+  GROUP BY
+    sp.global_entity_id,
+    sp.sku_id
 ),
 tmp_shrinkage AS (
     SELECT 
