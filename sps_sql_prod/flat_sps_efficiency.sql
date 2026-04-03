@@ -59,20 +59,36 @@ efficiency_by_warehouse AS (
     ROUND(SUM(sold_items),1) AS sold_items,
     SUM(gpv_eur) AS gpv_eur,
     -- weight_efficiency = perc_efficiency * gpv del supplier en este warehouse
-    -- perc_efficiency = efficient / (efficient + slow + zero) por warehouse
+    -- perc_efficiency = efficient / (efficient + slow(with stock) + zero(with stock)) por warehouse
     -- Metodología AQS v7: assortment_quality_scorecard_v7.sql
+    -- Denominador: efficient + slow(avail>=0.8) + zero(avail=1), excluyendo la_slow y la_zero
     ROUND(
       SAFE_DIVIDE(
         COUNT(DISTINCT CASE WHEN is_listed = TRUE AND updated_sku_age >= 90
           AND sku_efficiency = 'efficient_sku' THEN sku_id END),
         NULLIF(COUNT(DISTINCT CASE WHEN is_listed = TRUE AND updated_sku_age >= 90
-          AND sku_efficiency IN ('efficient_sku','slow_mover','zero_mover')
+          AND (
+            (sku_efficiency = 'efficient_sku')
+            OR (sku_efficiency = 'slow_mover'  AND ROUND(new_availability,3) >= 0.8)
+            OR (sku_efficiency = 'zero_mover'  AND ROUND(new_availability,3) = 1)
+          )
           THEN sku_id END), 0)
       ) * SUM(gpv_eur)
     , 4) AS weight_efficiency
   FROM `dh-darkstores-live.csm_automated_tables.sps_efficiency_month`
   WHERE CAST(month AS DATE) >= (SELECT lookback_limit FROM date_config)
-  GROUP BY 1,2,3,4,5,6,7,8,9,10,11
+  GROUP BY
+  global_entity_id,
+  month,
+  quarter_year,
+  supplier_id,
+  principal_supplier_id,
+  brand_name,
+  brand_owner_name,
+  l1_master_category,
+  l2_master_category,
+  l3_master_category
+
 )
  SELECT
     global_entity_id,
