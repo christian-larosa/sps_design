@@ -50,9 +50,11 @@ SELECT
         ELSE 'supplier' 
     END AS supplier_level,
   CASE WHEN GROUPING(month) = 0 THEN 'Monthly' ELSE 'Quarterly' END AS time_granularity,
-  SUM(spoilage_value) AS spoilage_value, 
-  SUM(retail_revenue) AS retail_revenue, 
-  SAFE_DIVIDE(SUM(spoilage_value), SUM(retail_revenue)) AS spoilage_rate,
+  SUM(spoilage_value_eur) AS spoilage_value_eur,
+  SUM(spoilage_value_lc)  AS spoilage_value_lc,
+  SUM(retail_revenue_eur) AS retail_revenue_eur,
+  SUM(retail_revenue_lc)  AS retail_revenue_lc,
+  SAFE_DIVIDE(SUM(spoilage_value_eur), SUM(retail_revenue_eur)) AS spoilage_rate,
 FROM `dh-darkstores-live.csm_automated_tables.sps_shrinkage_month`
 WHERE CAST(month AS DATE) >= (SELECT lookback_limit FROM date_config)
 GROUP BY GROUPING SETS (
