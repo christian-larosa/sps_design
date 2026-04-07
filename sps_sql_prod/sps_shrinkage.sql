@@ -45,8 +45,8 @@ SELECT
         ELSE 'supplier' 
     END AS supplier_level,
   CASE WHEN GROUPING(month) = 0 THEN 'Monthly' ELSE 'Quarterly' END AS time_granularity,
-  SUM(spoilage_value) AS spoilage_value,
-  SUM(retail_revenue) AS retail_revenue,
+  SUM(spoilage_value) AS spoilage_value, 
+  SUM(retail_revenue) AS retail_revenue, 
   SAFE_DIVIDE(SUM(spoilage_value), SUM(retail_revenue)) AS spoilage_rate,
 FROM `{{ params.project_id }}.{{ params.dataset.cl }}.sps_shrinkage_month`
 WHERE CAST(month AS DATE) >= (SELECT lookback_limit FROM date_config)

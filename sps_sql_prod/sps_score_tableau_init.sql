@@ -1,35 +1,31 @@
--- This table extracts and maintains the metrics mapping required for generating Supplier Scorecards. 
+-- This table extracts and maintains the efficiency metrics mapping required for generating Supplier Scorecards. 
 -- SPS Execution: Final Position 
--- DML SCRIPT: SPS Refact Incremental Refresh for {{ params.project_id }}.{{ params.dataset.cl }}.sps_score_tableau
+-- DML SCRIPT: SPS Refact Incremental Refresh for {{ params.project_id }}.{{ params.dataset.cl }}.sps_score_tableau_init
 
-CREATE OR REPLACE TABLE `{{ params.project_id }}.{{ params.dataset.cl }}.sps_score_tableau`
+CREATE OR REPLACE TABLE `{{ params.project_id }}.{{ params.dataset.cl }}.sps_score_tableau_init`
 CLUSTER BY
    global_entity_id
 AS 
-SELECT 
-  o.*,
-  fin.* EXCEPT (global_entity_id, time_period, time_granularity, division_type, supplier_level, entity_key, brand_sup),
-  slrm.* EXCEPT (global_entity_id, time_period, time_granularity, division_type, supplier_level, entity_key, brand_sup, net_purchase),
-  p.median_price_index,
-  dpo.payment_days,
-  dpo.doh,
-  dpo.dpo,
-  se.* EXCEPT (global_entity_id, time_period, time_granularity, division_type, supplier_level, entity_key, brand_sup),
-  listed.listed_skus,
-  shrink.spoilage_value,
-  shrink.retail_revenue,
-  shrink.spoilage_rate,
-  deliv.delivery_cost_eur,
-  deliv.delivery_cost_local
-FROM `{{ params.project_id }}.{{ params.dataset.cl }}.sps_purchase_order` AS o
-LEFT JOIN `{{ params.project_id }}.{{ params.dataset.cl }}.sps_financial_metrics` AS fin
-  ON o.global_entity_id = fin.global_entity_id AND o.time_period = fin.time_period AND o.time_granularity = fin.time_granularity AND o.division_type = fin.division_type AND o.supplier_level = fin.supplier_level AND o.entity_key = fin.entity_key AND o.brand_sup = fin.brand_sup
-LEFT JOIN `{{ params.project_id }}.{{ params.dataset.cl }}.sps_line_rebate_metrics` AS slrm
-  ON o.global_entity_id = slrm.global_entity_id AND o.time_period = slrm.time_period AND o.time_granularity = slrm.time_granularity AND o.division_type = slrm.division_type AND o.supplier_level = slrm.supplier_level AND o.entity_key = slrm.entity_key AND o.brand_sup = slrm.brand_sup
+SELECT o.*,
+ p.median_price_index,
+ dpo.payment_days,
+ dpo.doh,
+ dpo.dpo,
+ slrm.* EXCEPT (global_entity_id, time_period, time_granularity, division_type, supplier_level, entity_key, brand_sup, net_purchase),
+ se.* EXCEPT (global_entity_id, time_period, time_granularity, division_type, supplier_level, entity_key, brand_sup),
+ listed.listed_skus,
+ shrink.spoilage_value,
+ shrink.retail_revenue,
+ shrink.spoilage_rate,
+ deliv.delivery_cost_eur,
+ deliv.delivery_cost_local
+FROM `{{ params.project_id }}.{{ params.dataset.cl }}.sps_financial_metrics` AS o
 LEFT JOIN `{{ params.project_id }}.{{ params.dataset.cl }}.sps_price_index` AS p
   ON o.global_entity_id = p.global_entity_id AND o.time_period = p.time_period AND o.time_granularity = p.time_granularity AND o.division_type = p.division_type AND o.supplier_level = p.supplier_level AND o.entity_key = p.entity_key AND o.brand_sup = p.brand_sup
 LEFT JOIN `{{ params.project_id }}.{{ params.dataset.cl }}.sps_days_payable` AS dpo
   ON o.global_entity_id = dpo.global_entity_id AND o.time_period = dpo.time_period AND o.time_granularity = dpo.time_granularity AND o.division_type = dpo.division_type AND o.supplier_level = dpo.supplier_level AND o.entity_key = dpo.entity_key AND o.brand_sup = dpo.brand_sup
+LEFT JOIN `{{ params.project_id }}.{{ params.dataset.cl }}.sps_line_rebate_metrics` AS slrm
+  ON o.global_entity_id = slrm.global_entity_id AND o.time_period = slrm.time_period AND o.time_granularity = slrm.time_granularity AND o.division_type = slrm.division_type AND o.supplier_level = slrm.supplier_level AND o.entity_key = slrm.entity_key AND o.brand_sup = slrm.brand_sup
 LEFT JOIN `{{ params.project_id }}.{{ params.dataset.cl }}.sps_efficiency` AS se
   ON o.global_entity_id = se.global_entity_id AND o.time_period = se.time_period AND o.time_granularity = se.time_granularity AND o.division_type = se.division_type AND o.supplier_level = se.supplier_level AND o.entity_key = se.entity_key AND o.brand_sup = se.brand_sup
 LEFT JOIN `{{ params.project_id }}.{{ params.dataset.cl }}.sps_listed_sku` AS listed
