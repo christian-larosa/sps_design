@@ -101,4 +101,6 @@ LEFT JOIN ranked_global_product AS sp_fallback
   ON te.sku_id = sp_fallback.sku_id
   AND te.global_entity_id = sp_fallback.global_entity_id
   AND sp_fallback.recency_rank = 1
-WHERE TRUE
+  AND sp_exact.sku_id IS NULL
+WHERE TRUE;
+
