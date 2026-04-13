@@ -39,7 +39,7 @@ This folder contains the original files (sps_originals) with critical documented
 - **New:** spoilage_value_lc, retail_revenue_lc (multi-currency support)
 
 #### 7. **sps_line_rebate_metrics.sql**
-- **New ingredients:** calc_net_delivered, calc_net_return
+- **New ingredients:** calc_net_delivered, calc_net_return, and calc_gross two fields (2)
 - **Base for:** Rebate calculations in Tableau (net_purchase = SUM(calc_net_delivered) - SUM(calc_net_return))
 
 ### Tier 3: Debug (Review for validation)
