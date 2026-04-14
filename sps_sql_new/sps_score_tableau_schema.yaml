@@ -1,54 +1,58 @@
 table:
   name: sps_score_tableau
-  description: "Main Supplier Performance Scorecard table - final aggregated metrics for Supplier Scorecards"
+  description: "Main Supplier Performance Scorecard table (v7-NEW) - final aggregated metrics with all_keys UNION architecture and debug/Tableau ingredientes"
   clustering_key:
     - global_entity_id
 
+  architecture:
+    pattern: "all_keys UNION DISTINCT"
+    description: "NEW: Instead of anchoring to sps_purchase_order, collects DISTINCT key combinations (global_entity_id, time_period, brand_sup, entity_key, division_type, supplier_level, time_granularity) from ALL 9 source tables, ensuring coverage of all unique key combinations even if missing from purchase_order"
+
 columns:
   # ============================================================
-  # AGGREGATION KEYS (from sps_purchase_order)
+  # AGGREGATION KEYS (from all_keys UNION)
   # ============================================================
   - name: global_entity_id
     type: STRING
     description: "Global entity identifier for the marketplace/region"
     nullable: false
-    source_table: sps_purchase_order
+    source_table: all_keys
 
   - name: time_period
     type: STRING
-    description: "Time period in YYYY-MM-DD format (monthly) or YYYY-Qx (quarterly). Dynamically derived from GROUPING(month) or quarter_year"
+    description: "Time period in YYYY-MM-DD format (monthly) or YYYY-Qx (quarterly). Dynamically derived from GROUPING"
     nullable: false
-    source_table: sps_purchase_order
+    source_table: all_keys
 
   - name: brand_sup
     type: STRING
     description: "Brand/Supplier aggregation key. Values: principal_supplier_id | supplier_id | brand_owner_name | brand_name | 'total'"
     nullable: false
-    source_table: sps_purchase_order
+    source_table: all_keys
 
   - name: entity_key
     type: STRING
     description: "Entity key hierarchically determined from: l3_master_category > l2_master_category > l1_master_category > brand_name > brand_owner_name > supplier_id > principal_supplier_id"
     nullable: false
-    source_table: sps_purchase_order
+    source_table: all_keys
 
   - name: division_type
     type: STRING
     description: "Division type indicating the aggregation level. Values: 'principal' | 'division' | 'brand_owner' | 'brand_name' | 'total'"
     nullable: false
-    source_table: sps_purchase_order
+    source_table: all_keys
 
   - name: supplier_level
     type: STRING
     description: "Supplier aggregation level. Values: 'level_three' | 'level_two' | 'level_one' | 'brand_name' | 'supplier'"
     nullable: false
-    source_table: sps_purchase_order
+    source_table: all_keys
 
   - name: time_granularity
     type: STRING
     description: "Time granularity. Values: 'Monthly' or 'Quarterly'"
     nullable: false
-    source_table: sps_purchase_order
+    source_table: all_keys
 
   # ============================================================
   # ORDER METRICS (from sps_purchase_order)
@@ -73,19 +77,19 @@ columns:
 
   - name: total_received_qty_per_po_order
     type: NUMERIC
-    description: "Total quantity received for done, compliant POs"
+    description: "Total quantity received for done, compliant POs (filtered)"
     nullable: true
     source_table: sps_purchase_order
 
   - name: total_demanded_qty_per_po_order
     type: NUMERIC
-    description: "Total quantity demanded for done, compliant POs"
+    description: "Total quantity demanded for done, compliant POs (filtered)"
     nullable: true
     source_table: sps_purchase_order
 
   - name: fill_rate
     type: NUMERIC
-    description: "Fill rate: received_qty / demanded_qty (4 decimals)"
+    description: "Fill rate: received_qty / demanded_qty (4 decimals). For compliant orders only"
     nullable: true
     precision: 4
     source_table: sps_purchase_order
@@ -101,6 +105,34 @@ columns:
     type: NUMERIC
     description: "Quantity from cancelled POs due to supplier non-fulfillment"
     nullable: true
+    source_table: sps_purchase_order
+
+  - name: total_po_orders
+    type: INT64
+    description: "NEW (debug): Count of ALL POs (no filters) for debugging aggregation"
+    nullable: true
+    is_debug: true
+    source_table: sps_purchase_order
+
+  - name: total_compliant_po_orders
+    type: INT64
+    description: "NEW (debug): Count of ALL compliant POs (is_compliant_flag = TRUE)"
+    nullable: true
+    is_debug: true
+    source_table: sps_purchase_order
+
+  - name: total_received_qty_ALL
+    type: NUMERIC
+    description: "NEW (debug): Total received qty across ALL orders (no compliance filter)"
+    nullable: true
+    is_debug: true
+    source_table: sps_purchase_order
+
+  - name: total_demanded_qty_ALL
+    type: NUMERIC
+    description: "NEW (debug): Total demanded qty across ALL orders (no compliance filter)"
+    nullable: true
+    is_debug: true
     source_table: sps_purchase_order
 
   # ============================================================
@@ -362,14 +394,63 @@ columns:
     precision: 4
     source_table: sps_line_rebate_metrics
 
+  - name: calc_gross_delivered
+    type: NUMERIC
+    description: "NEW (ingrediente): Gross delivered quantity. Precision: 2"
+    nullable: true
+    precision: 2
+    is_ingredient: true
+    source_table: sps_line_rebate_metrics
+
+  - name: calc_gross_return
+    type: NUMERIC
+    description: "NEW (ingrediente): Gross return quantity. Precision: 2"
+    nullable: true
+    precision: 2
+    is_ingredient: true
+    source_table: sps_line_rebate_metrics
+
+  - name: calc_net_delivered
+    type: NUMERIC
+    description: "NEW (ingrediente): Net delivered quantity (for Tableau aggregation). Precision: 2"
+    nullable: true
+    precision: 2
+    is_ingredient: true
+    source_table: sps_line_rebate_metrics
+
+  - name: calc_net_return
+    type: NUMERIC
+    description: "NEW (ingrediente): Net return quantity (for Tableau aggregation). Precision: 2"
+    nullable: true
+    precision: 2
+    is_ingredient: true
+    source_table: sps_line_rebate_metrics
+
   # ============================================================
   # PRICE INDEX (from sps_price_index)
   # ============================================================
+  - name: price_index_numerator
+    type: NUMERIC
+    description: "NEW (ingrediente): Numerator for median price index. Tableau formula: SUM(price_index_numerator) / SUM(price_index_weight). Precision: 4"
+    nullable: true
+    precision: 4
+    is_ingredient: true
+    source_table: sps_price_index
+
+  - name: price_index_weight
+    type: NUMERIC
+    description: "NEW (ingrediente): Weight/denominator for median price index (GPV-based). Precision: 4"
+    nullable: true
+    precision: 4
+    is_ingredient: true
+    source_table: sps_price_index
+
   - name: median_price_index
     type: NUMERIC
-    description: "Weighted median basis point index. Precision: 2"
+    description: "Weighted median basis point index (deprecated in Tableau v7, use ingredientes). Precision: 2"
     nullable: true
     precision: 2
+    deprecated: true
     source_table: sps_price_index
 
   # ============================================================
@@ -377,31 +458,57 @@ columns:
   # ============================================================
   - name: payment_days
     type: INT64
-    description: "Days to payment"
+    description: "Days to payment (MAX across aggregation)"
     nullable: true
     source_table: sps_days_payable
 
   - name: doh
     type: NUMERIC
-    description: "Days on Hand: (stock_value_eur) / (daily_cogs). Calculated differently for monthly vs quarterly"
+    description: "Days on Hand (calculated field, varies by granularity). Deprecated in Tableau v7; use ingredientes instead"
     nullable: true
+    deprecated: true
     source_table: sps_days_payable
 
   - name: dpo
     type: NUMERIC
-    description: "Days Payable Outstanding: payment_days - doh"
+    description: "Days Payable Outstanding: payment_days - doh. Deprecated in Tableau v7; use ingredientes instead"
     nullable: true
+    deprecated: true
+    source_table: sps_days_payable
+
+  - name: stock_value_eur
+    type: NUMERIC
+    description: "NEW (ingrediente): Stock value in EUR (SUM). Use for DOH calculation: stock_value_eur / (cogs_monthly_eur / days_in_month)"
+    nullable: true
+    is_ingredient: true
+    currency: EUR
+    source_table: sps_days_payable
+
+  - name: cogs_monthly_eur
+    type: NUMERIC
+    description: "NEW (ingrediente): Monthly COGS in EUR (SUM). Use for DOH calculation"
+    nullable: true
+    is_ingredient: true
+    currency: EUR
+    source_table: sps_days_payable
+
+  - name: days_in_month
+    type: INT64
+    description: "NEW (ingrediente): Days in month (MAX). Use for monthly DOH calculation"
+    nullable: true
+    is_ingredient: true
+    source_table: sps_days_payable
+
+  - name: days_in_quarter
+    type: INT64
+    description: "NEW (ingrediente): Days in quarter (MAX). Use for quarterly DOH calculation: stock_value_eur / (cogs_monthly_eur / (days_in_quarter / 3))"
+    nullable: true
+    is_ingredient: true
     source_table: sps_days_payable
 
   # ============================================================
   # EFFICIENCY METRICS (from sps_efficiency)
   # ============================================================
-  - name: last_year_time_period
-    type: STRING
-    description: "Time period reference for last year (used in efficiency calculations)"
-    nullable: true
-    source_table: sps_efficiency
-
   - name: sku_listed
     type: INT64
     description: "Total SKUs listed in this period"
@@ -426,33 +533,9 @@ columns:
     nullable: true
     source_table: sps_efficiency
 
-  - name: zero_movers
-    type: INT64
-    description: "Mature SKUs with zero sales and high availability"
-    nullable: true
-    source_table: sps_efficiency
-
-  - name: la_zero_movers
-    type: INT64
-    description: "Mature SKUs with zero sales and low/no availability"
-    nullable: true
-    source_table: sps_efficiency
-
-  - name: slow_movers
-    type: INT64
-    description: "Mature SKUs with sales < 1 unit/day and high availability (>=0.8)"
-    nullable: true
-    source_table: sps_efficiency
-
-  - name: la_slow_movers
-    type: INT64
-    description: "Mature SKUs with sales < 1 unit/day and low availability (<0.8)"
-    nullable: true
-    source_table: sps_efficiency
-
   - name: efficient_movers
     type: INT64
-    description: "Mature SKUs with sales >= 1 unit/day (good movers)"
+    description: "Mature SKUs with sales >= 1 unit/day"
     nullable: true
     source_table: sps_efficiency
 
@@ -489,6 +572,28 @@ columns:
     currency: EUR
     source_table: sps_efficiency
 
+  - name: numerator_new_avail
+    type: NUMERIC
+    description: "NEW (ingrediente AQS v7): Numerator for availability calculation. Tableau: SUM(numerator_new_avail) / SUM(denom_new_avail)"
+    nullable: true
+    is_ingredient: true
+    source_table: sps_efficiency
+
+  - name: denom_new_avail
+    type: NUMERIC
+    description: "NEW (ingrediente AQS v7): Denominator for availability calculation"
+    nullable: true
+    is_ingredient: true
+    source_table: sps_efficiency
+
+  - name: weight_efficiency
+    type: NUMERIC
+    description: "NEW (ingrediente AQS v7): Weighted efficiency metric. Tableau: SUM(weight_efficiency) / SUM(gpv_eur). Precision: 4"
+    nullable: true
+    precision: 4
+    is_ingredient: true
+    source_table: sps_efficiency
+
   # ============================================================
   # LISTED SKU COUNT (from sps_listed_sku)
   # ============================================================
@@ -501,21 +606,37 @@ columns:
   # ============================================================
   # SHRINKAGE METRICS (from sps_shrinkage)
   # ============================================================
-  - name: spoilage_value
+  - name: spoilage_value_eur
     type: NUMERIC
-    description: "Total spoilage value (loss in EUR)"
+    description: "NEW (renamed): Spoilage value in EUR (was spoilage_value)"
     nullable: true
+    currency: EUR
     source_table: sps_shrinkage
 
-  - name: retail_revenue
+  - name: spoilage_value_lc
     type: NUMERIC
-    description: "Retail revenue (baseline for spoilage rate calculation)"
+    description: "NEW: Spoilage value in Local Currency (multi-currency support)"
     nullable: true
+    currency: LC
+    source_table: sps_shrinkage
+
+  - name: retail_revenue_eur
+    type: NUMERIC
+    description: "NEW (renamed): Retail revenue in EUR (was retail_revenue)"
+    nullable: true
+    currency: EUR
+    source_table: sps_shrinkage
+
+  - name: retail_revenue_lc
+    type: NUMERIC
+    description: "NEW: Retail revenue in Local Currency (multi-currency support)"
+    nullable: true
+    currency: LC
     source_table: sps_shrinkage
 
   - name: spoilage_rate
     type: NUMERIC
-    description: "Spoilage rate: spoilage_value / retail_revenue"
+    description: "Spoilage rate: spoilage_value_eur / retail_revenue_eur. Tableau: SUM(spoilage_value_eur) / SUM(retail_revenue_eur)"
     nullable: true
     source_table: sps_shrinkage
 
@@ -537,8 +658,10 @@ columns:
     source_table: sps_delivery_costs
 
 metadata:
-  total_columns: 107
+  total_columns: 119
+
   source_tables:
+    - all_keys (UNION DISTINCT of 9 tables)
     - sps_purchase_order
     - sps_financial_metrics
     - sps_line_rebate_metrics
@@ -549,7 +672,9 @@ metadata:
     - sps_shrinkage
     - sps_delivery_costs
 
-  join_strategy: "8 LEFT JOINs from sps_purchase_order base table"
+  join_strategy: "9 LEFT JOINs from all_keys UNION base (NEW: ensures all unique key combinations are covered)"
+
+  key_innovation: "all_keys UNION DISTINCT collects keys from ALL 9 source tables, not just sps_purchase_order. Guarantees zero data loss even if a key exists in efficiency but not in purchase_order"
 
   aggregation_keys: [global_entity_id, time_period, brand_sup, entity_key, division_type, supplier_level, time_granularity]
 
@@ -557,6 +682,18 @@ metadata:
 
   granularity: "Monthly and Quarterly (driven by time_granularity field)"
 
-  update_frequency: "Full refresh (monthly/quarterly)"
+  update_frequency: "Incremental refresh (compatible with both full and incremental pipelines)"
 
   clustering: "global_entity_id"
+
+  new_features:
+    - "3-CTE efficiency refactor (AQS v7 methodology): SKU counts, warehouse-level additive metrics, weight_efficiency ingredient"
+    - "Ingredientes for correct Tableau aggregation: price_index_numerator/weight, stock_value_eur/cogs_monthly_eur, numerator_new_avail/denom_new_avail, weight_efficiency"
+    - "Multi-currency support: spoilage_value_eur/lc, retail_revenue_eur/lc, delivery_cost_eur/local"
+    - "Debug fields: total_po_orders, total_compliant_po_orders, total_received_qty_ALL, total_demanded_qty_ALL"
+    - "AQS v7 efficiency weights for better portfolio performance modeling"
+
+  backwards_compatibility:
+    - "median_price_index: DEPRECATED (use price_index_numerator/price_index_weight instead)"
+    - "doh, dpo: DEPRECATED (use stock_value_eur, cogs_monthly_eur, days_in_month/quarter instead)"
+    - "spoilage_value → spoilage_value_eur, retail_revenue → retail_revenue_eur (renamed for clarity)"
