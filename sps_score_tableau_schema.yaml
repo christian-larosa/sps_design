@@ -1,0 +1,562 @@
+table:
+  name: sps_score_tableau
+  description: "Main Supplier Performance Scorecard table - final aggregated metrics for Supplier Scorecards"
+  clustering_key:
+    - global_entity_id
+
+columns:
+  # ============================================================
+  # AGGREGATION KEYS (from sps_purchase_order)
+  # ============================================================
+  - name: global_entity_id
+    type: STRING
+    description: "Global entity identifier for the marketplace/region"
+    nullable: false
+    source_table: sps_purchase_order
+
+  - name: time_period
+    type: STRING
+    description: "Time period in YYYY-MM-DD format (monthly) or YYYY-Qx (quarterly). Dynamically derived from GROUPING(month) or quarter_year"
+    nullable: false
+    source_table: sps_purchase_order
+
+  - name: brand_sup
+    type: STRING
+    description: "Brand/Supplier aggregation key. Values: principal_supplier_id | supplier_id | brand_owner_name | brand_name | 'total'"
+    nullable: false
+    source_table: sps_purchase_order
+
+  - name: entity_key
+    type: STRING
+    description: "Entity key hierarchically determined from: l3_master_category > l2_master_category > l1_master_category > brand_name > brand_owner_name > supplier_id > principal_supplier_id"
+    nullable: false
+    source_table: sps_purchase_order
+
+  - name: division_type
+    type: STRING
+    description: "Division type indicating the aggregation level. Values: 'principal' | 'division' | 'brand_owner' | 'brand_name' | 'total'"
+    nullable: false
+    source_table: sps_purchase_order
+
+  - name: supplier_level
+    type: STRING
+    description: "Supplier aggregation level. Values: 'level_three' | 'level_two' | 'level_one' | 'brand_name' | 'supplier'"
+    nullable: false
+    source_table: sps_purchase_order
+
+  - name: time_granularity
+    type: STRING
+    description: "Time granularity. Values: 'Monthly' or 'Quarterly'"
+    nullable: false
+    source_table: sps_purchase_order
+
+  # ============================================================
+  # ORDER METRICS (from sps_purchase_order)
+  # ============================================================
+  - name: on_time_orders
+    type: INT64
+    description: "Count of distinct on-time and compliant purchase orders"
+    nullable: true
+    source_table: sps_purchase_order
+
+  - name: total_cancelled_po_orders
+    type: INT64
+    description: "Count of distinct cancelled POs (reasons: Supplier non-fulfillment, AUTO CANCELLED, PO rejected on site, Stock not available)"
+    nullable: true
+    source_table: sps_purchase_order
+
+  - name: total_non_cancelled__po_orders
+    type: INT64
+    description: "Count of distinct non-cancelled and compliant POs"
+    nullable: true
+    source_table: sps_purchase_order
+
+  - name: total_received_qty_per_po_order
+    type: NUMERIC
+    description: "Total quantity received for done, compliant POs"
+    nullable: true
+    source_table: sps_purchase_order
+
+  - name: total_demanded_qty_per_po_order
+    type: NUMERIC
+    description: "Total quantity demanded for done, compliant POs"
+    nullable: true
+    source_table: sps_purchase_order
+
+  - name: fill_rate
+    type: NUMERIC
+    description: "Fill rate: received_qty / demanded_qty (4 decimals)"
+    nullable: true
+    precision: 4
+    source_table: sps_purchase_order
+
+  - name: otd
+    type: NUMERIC
+    description: "On-Time Delivery: on_time_orders / total_non_cancelled__po_orders (4 decimals)"
+    nullable: true
+    precision: 4
+    source_table: sps_purchase_order
+
+  - name: supplier_non_fulfilled_order_qty
+    type: NUMERIC
+    description: "Quantity from cancelled POs due to supplier non-fulfillment"
+    nullable: true
+    source_table: sps_purchase_order
+
+  # ============================================================
+  # FINANCIAL METRICS (from sps_financial_metrics)
+  # ============================================================
+  - name: total_customers
+    type: INT64
+    description: "Count of distinct analytical customers"
+    nullable: true
+    source_table: sps_financial_metrics
+
+  - name: total_skus_sold
+    type: INT64
+    description: "Count of distinct SKUs sold"
+    nullable: true
+    source_table: sps_financial_metrics
+
+  - name: total_orders
+    type: INT64
+    description: "Count of distinct orders"
+    nullable: true
+    source_table: sps_financial_metrics
+
+  - name: total_warehouses_sold
+    type: INT64
+    description: "Count of distinct warehouses where sales occurred"
+    nullable: true
+    source_table: sps_financial_metrics
+
+  - name: Total_Net_Sales_eur_order
+    type: NUMERIC
+    description: "Total net sales in EUR (order-level aggregation). Precision: 2"
+    nullable: true
+    precision: 2
+    currency: EUR
+    source_table: sps_financial_metrics
+
+  - name: Net_Sales_eur
+    type: NUMERIC
+    description: "Net sales in EUR. Precision: 2"
+    nullable: true
+    precision: 2
+    currency: EUR
+    source_table: sps_financial_metrics
+
+  - name: COGS_eur
+    type: NUMERIC
+    description: "Cost of Goods Sold in EUR. Precision: 4"
+    nullable: true
+    precision: 4
+    currency: EUR
+    source_table: sps_financial_metrics
+
+  - name: Net_Sales_from_promo_eur
+    type: NUMERIC
+    description: "Net sales from promotional orders (unit_discount > 0) in EUR. Precision: 2"
+    nullable: true
+    precision: 2
+    currency: EUR
+    source_table: sps_financial_metrics
+
+  - name: total_supplier_funding_eur
+    type: NUMERIC
+    description: "Total supplier funding/rebates in EUR. Precision: 2"
+    nullable: true
+    precision: 2
+    currency: EUR
+    source_table: sps_financial_metrics
+
+  - name: front_margin_amt_eur
+    type: NUMERIC
+    description: "Front margin: Net_Sales_eur - COGS_eur in EUR. Precision: 2"
+    nullable: true
+    precision: 2
+    currency: EUR
+    source_table: sps_financial_metrics
+
+  - name: total_discount_eur
+    type: NUMERIC
+    description: "Total discounts in EUR. Precision: 4"
+    nullable: true
+    precision: 4
+    currency: EUR
+    source_table: sps_financial_metrics
+
+  - name: Promo_GPV_contribution_eur
+    type: NUMERIC
+    description: "Promotional GPV contribution: promo_sales / total_net_sales in EUR. Precision: 4"
+    nullable: true
+    precision: 4
+    source_table: sps_financial_metrics
+
+  - name: Total_Net_Sales_lc_order
+    type: NUMERIC
+    description: "Total net sales in Local Currency (order-level). Precision: 2"
+    nullable: true
+    precision: 2
+    currency: LC
+    source_table: sps_financial_metrics
+
+  - name: Net_Sales_lc
+    type: NUMERIC
+    description: "Net sales in Local Currency. Precision: 2"
+    nullable: true
+    precision: 2
+    currency: LC
+    source_table: sps_financial_metrics
+
+  - name: COGS_lc
+    type: NUMERIC
+    description: "Cost of Goods Sold in Local Currency. Precision: 4"
+    nullable: true
+    precision: 4
+    currency: LC
+    source_table: sps_financial_metrics
+
+  - name: Net_Sales_from_promo_lc
+    type: NUMERIC
+    description: "Net sales from promotional orders in Local Currency. Precision: 2"
+    nullable: true
+    precision: 2
+    currency: LC
+    source_table: sps_financial_metrics
+
+  - name: total_supplier_funding_lc
+    type: NUMERIC
+    description: "Total supplier funding in Local Currency. Precision: 2"
+    nullable: true
+    precision: 2
+    currency: LC
+    source_table: sps_financial_metrics
+
+  - name: front_margin_amt_lc
+    type: NUMERIC
+    description: "Front margin in Local Currency. Precision: 2"
+    nullable: true
+    precision: 2
+    currency: LC
+    source_table: sps_financial_metrics
+
+  - name: total_discount_lc
+    type: NUMERIC
+    description: "Total discounts in Local Currency. Precision: 4"
+    nullable: true
+    precision: 4
+    currency: LC
+    source_table: sps_financial_metrics
+
+  - name: Promo_GPV_contribution_lc
+    type: NUMERIC
+    description: "Promotional GPV contribution in Local Currency. Precision: 4"
+    nullable: true
+    precision: 4
+    source_table: sps_financial_metrics
+
+  - name: total_GBV
+    type: NUMERIC
+    description: "Total Gross Booking Value. Precision: 2"
+    nullable: true
+    precision: 2
+    currency: EUR
+    source_table: sps_financial_metrics
+
+  - name: fulfilled_quantity
+    type: NUMERIC
+    description: "Total fulfilled quantity. Precision: 2"
+    nullable: true
+    precision: 2
+    source_table: sps_financial_metrics
+
+  - name: Net_Sales_eur_Last_Year
+    type: NUMERIC
+    description: "Net sales in EUR from same period last year. Precision: 2"
+    nullable: true
+    precision: 2
+    currency: EUR
+    source_table: sps_financial_metrics
+
+  - name: Net_Sales_lc_Last_Year
+    type: NUMERIC
+    description: "Net sales in Local Currency from same period last year. Precision: 2"
+    nullable: true
+    precision: 2
+    currency: LC
+    source_table: sps_financial_metrics
+
+  - name: YoY_GPV_Growth_eur
+    type: NUMERIC
+    description: "Year-over-Year GPV growth in EUR. Precision: 3"
+    nullable: true
+    precision: 3
+    source_table: sps_financial_metrics
+
+  - name: YoY_GPV_Growth_lc
+    type: NUMERIC
+    description: "Year-over-Year GPV growth in Local Currency. Precision: 3"
+    nullable: true
+    precision: 3
+    source_table: sps_financial_metrics
+
+  - name: back_margin_amt_lc
+    type: NUMERIC
+    description: "Back margin (rebates) in Local Currency. Precision: 2"
+    nullable: true
+    precision: 2
+    currency: LC
+    source_table: sps_financial_metrics
+
+  - name: back_margin_wo_dist_allowance_amt_lc
+    type: NUMERIC
+    description: "Back margin without distribution allowance in Local Currency. Precision: 2"
+    nullable: true
+    precision: 2
+    currency: LC
+    source_table: sps_financial_metrics
+
+  - name: Total_Margin_LC
+    type: NUMERIC
+    description: "Total margin (Front + Back) in Local Currency: (Net_Sales + funding - COGS + rebates) / Net_Sales. Precision: 4"
+    nullable: true
+    precision: 4
+    source_table: sps_financial_metrics
+
+  - name: Front_Margin_eur
+    type: NUMERIC
+    description: "Front margin percentage in EUR. Precision: 4"
+    nullable: true
+    precision: 4
+    source_table: sps_financial_metrics
+
+  - name: Front_Margin_lc
+    type: NUMERIC
+    description: "Front margin percentage in Local Currency. Precision: 4"
+    nullable: true
+    precision: 4
+    source_table: sps_financial_metrics
+
+  # ============================================================
+  # LINE REBATE METRICS (from sps_line_rebate_metrics)
+  # ============================================================
+  - name: net_purchase
+    type: NUMERIC
+    description: "Net purchase: sku_calc_net_delivered - sku_calc_net_return. Precision: 2"
+    nullable: true
+    precision: 2
+    source_table: sps_line_rebate_metrics
+
+  - name: total_rebate
+    type: NUMERIC
+    description: "Total line rebate amount. Precision: 2"
+    nullable: true
+    precision: 2
+    source_table: sps_line_rebate_metrics
+
+  - name: total_rebate_wo_dist_allowance_lc
+    type: NUMERIC
+    description: "Total rebate without distribution allowance in Local Currency. Precision: 4"
+    nullable: true
+    precision: 4
+    source_table: sps_line_rebate_metrics
+
+  # ============================================================
+  # PRICE INDEX (from sps_price_index)
+  # ============================================================
+  - name: median_price_index
+    type: NUMERIC
+    description: "Weighted median basis point index. Precision: 2"
+    nullable: true
+    precision: 2
+    source_table: sps_price_index
+
+  # ============================================================
+  # DAYS PAYABLE METRICS (from sps_days_payable)
+  # ============================================================
+  - name: payment_days
+    type: INT64
+    description: "Days to payment"
+    nullable: true
+    source_table: sps_days_payable
+
+  - name: doh
+    type: NUMERIC
+    description: "Days on Hand: (stock_value_eur) / (daily_cogs). Calculated differently for monthly vs quarterly"
+    nullable: true
+    source_table: sps_days_payable
+
+  - name: dpo
+    type: NUMERIC
+    description: "Days Payable Outstanding: payment_days - doh"
+    nullable: true
+    source_table: sps_days_payable
+
+  # ============================================================
+  # EFFICIENCY METRICS (from sps_efficiency)
+  # ============================================================
+  - name: last_year_time_period
+    type: STRING
+    description: "Time period reference for last year (used in efficiency calculations)"
+    nullable: true
+    source_table: sps_efficiency
+
+  - name: sku_listed
+    type: INT64
+    description: "Total SKUs listed in this period"
+    nullable: true
+    source_table: sps_efficiency
+
+  - name: sku_mature
+    type: INT64
+    description: "SKUs with 90+ days on listing"
+    nullable: true
+    source_table: sps_efficiency
+
+  - name: sku_probation
+    type: INT64
+    description: "SKUs in probation period (30-90 days on listing)"
+    nullable: true
+    source_table: sps_efficiency
+
+  - name: sku_new
+    type: INT64
+    description: "New SKUs (0-30 days on listing)"
+    nullable: true
+    source_table: sps_efficiency
+
+  - name: zero_movers
+    type: INT64
+    description: "Mature SKUs with zero sales and high availability"
+    nullable: true
+    source_table: sps_efficiency
+
+  - name: la_zero_movers
+    type: INT64
+    description: "Mature SKUs with zero sales and low/no availability"
+    nullable: true
+    source_table: sps_efficiency
+
+  - name: slow_movers
+    type: INT64
+    description: "Mature SKUs with sales < 1 unit/day and high availability (>=0.8)"
+    nullable: true
+    source_table: sps_efficiency
+
+  - name: la_slow_movers
+    type: INT64
+    description: "Mature SKUs with sales < 1 unit/day and low availability (<0.8)"
+    nullable: true
+    source_table: sps_efficiency
+
+  - name: efficient_movers
+    type: INT64
+    description: "Mature SKUs with sales >= 1 unit/day (good movers)"
+    nullable: true
+    source_table: sps_efficiency
+
+  - name: new_zero_movers
+    type: INT64
+    description: "New SKUs (0-30 days) with zero sales"
+    nullable: true
+    source_table: sps_efficiency
+
+  - name: new_slow_movers
+    type: INT64
+    description: "New SKUs (0-30 days) with sales < 1 unit/day"
+    nullable: true
+    source_table: sps_efficiency
+
+  - name: new_efficient_movers
+    type: INT64
+    description: "New/probation SKUs with sales >= 1 unit/day"
+    nullable: true
+    source_table: sps_efficiency
+
+  - name: sold_items
+    type: NUMERIC
+    description: "Total items sold. Precision: 1"
+    nullable: true
+    precision: 1
+    source_table: sps_efficiency
+
+  - name: gpv_eur
+    type: NUMERIC
+    description: "Gross profit value in EUR. Precision: 1"
+    nullable: true
+    precision: 1
+    currency: EUR
+    source_table: sps_efficiency
+
+  # ============================================================
+  # LISTED SKU COUNT (from sps_listed_sku)
+  # ============================================================
+  - name: listed_skus
+    type: INT64
+    description: "Count of distinct listed SKUs"
+    nullable: true
+    source_table: sps_listed_sku
+
+  # ============================================================
+  # SHRINKAGE METRICS (from sps_shrinkage)
+  # ============================================================
+  - name: spoilage_value
+    type: NUMERIC
+    description: "Total spoilage value (loss in EUR)"
+    nullable: true
+    source_table: sps_shrinkage
+
+  - name: retail_revenue
+    type: NUMERIC
+    description: "Retail revenue (baseline for spoilage rate calculation)"
+    nullable: true
+    source_table: sps_shrinkage
+
+  - name: spoilage_rate
+    type: NUMERIC
+    description: "Spoilage rate: spoilage_value / retail_revenue"
+    nullable: true
+    source_table: sps_shrinkage
+
+  # ============================================================
+  # DELIVERY COSTS (from sps_delivery_costs)
+  # ============================================================
+  - name: delivery_cost_eur
+    type: NUMERIC
+    description: "Allocated delivery cost in EUR"
+    nullable: true
+    currency: EUR
+    source_table: sps_delivery_costs
+
+  - name: delivery_cost_local
+    type: NUMERIC
+    description: "Allocated delivery cost in Local Currency"
+    nullable: true
+    currency: LC
+    source_table: sps_delivery_costs
+
+metadata:
+  total_columns: 107
+  source_tables:
+    - sps_purchase_order
+    - sps_financial_metrics
+    - sps_line_rebate_metrics
+    - sps_price_index
+    - sps_days_payable
+    - sps_efficiency
+    - sps_listed_sku
+    - sps_shrinkage
+    - sps_delivery_costs
+
+  join_strategy: "8 LEFT JOINs from sps_purchase_order base table"
+
+  aggregation_keys: [global_entity_id, time_period, brand_sup, entity_key, division_type, supplier_level, time_granularity]
+
+  lookback_period: "Last 4 quarters (1 year)"
+
+  granularity: "Monthly and Quarterly (driven by time_granularity field)"
+
+  update_frequency: "Full refresh (monthly/quarterly)"
+
+  clustering: "global_entity_id"
