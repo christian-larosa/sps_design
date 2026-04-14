@@ -4,661 +4,522 @@ table:
   clustering_key:
     - global_entity_id
 
-  architecture:
-    pattern: "all_keys UNION DISTINCT"
-    description: "NEW: Instead of anchoring to sps_purchase_order, collects DISTINCT key combinations (global_entity_id, time_period, brand_sup, entity_key, division_type, supplier_level, time_granularity) from ALL 9 source tables, ensuring coverage of all unique key combinations even if missing from purchase_order"
-
 columns:
   # ============================================================
   # AGGREGATION KEYS (from all_keys UNION)
   # ============================================================
   - name: global_entity_id
     type: STRING
-    description: "Global entity identifier for the marketplace/region"
     nullable: false
-    source_table: all_keys
 
   - name: time_period
     type: STRING
-    description: "Time period in YYYY-MM-DD format (monthly) or YYYY-Qx (quarterly). Dynamically derived from GROUPING"
     nullable: false
-    source_table: all_keys
 
   - name: brand_sup
     type: STRING
-    description: "Brand/Supplier aggregation key. Values: principal_supplier_id | supplier_id | brand_owner_name | brand_name | 'total'"
     nullable: false
-    source_table: all_keys
 
   - name: entity_key
     type: STRING
-    description: "Entity key hierarchically determined from: l3_master_category > l2_master_category > l1_master_category > brand_name > brand_owner_name > supplier_id > principal_supplier_id"
     nullable: false
-    source_table: all_keys
 
   - name: division_type
     type: STRING
-    description: "Division type indicating the aggregation level. Values: 'principal' | 'division' | 'brand_owner' | 'brand_name' | 'total'"
     nullable: false
-    source_table: all_keys
 
   - name: supplier_level
     type: STRING
-    description: "Supplier aggregation level. Values: 'level_three' | 'level_two' | 'level_one' | 'brand_name' | 'supplier'"
     nullable: false
-    source_table: all_keys
 
   - name: time_granularity
     type: STRING
-    description: "Time granularity. Values: 'Monthly' or 'Quarterly'"
     nullable: false
-    source_table: all_keys
 
   # ============================================================
-  # ORDER METRICS (from sps_purchase_order)
+  # PRICE INDEX METRICS (from sps_price_index)
   # ============================================================
-  - name: on_time_orders
-    type: INT64
-    description: "Count of distinct on-time and compliant purchase orders"
+  - name: median_price_index
+    type: FLOAT
     nullable: true
-    source_table: sps_purchase_order
+    source: sps_price_index
+    note: "Deprecated in Tableau v7; use price_index_numerator/price_index_weight instead"
 
-  - name: total_cancelled_po_orders
-    type: INT64
-    description: "Count of distinct cancelled POs (reasons: Supplier non-fulfillment, AUTO CANCELLED, PO rejected on site, Stock not available)"
-    nullable: true
-    source_table: sps_purchase_order
-
-  - name: total_non_cancelled__po_orders
-    type: INT64
-    description: "Count of distinct non-cancelled and compliant POs"
-    nullable: true
-    source_table: sps_purchase_order
-
-  - name: total_received_qty_per_po_order
-    type: NUMERIC
-    description: "Total quantity received for done, compliant POs (filtered)"
-    nullable: true
-    source_table: sps_purchase_order
-
-  - name: total_demanded_qty_per_po_order
-    type: NUMERIC
-    description: "Total quantity demanded for done, compliant POs (filtered)"
-    nullable: true
-    source_table: sps_purchase_order
-
-  - name: fill_rate
-    type: NUMERIC
-    description: "Fill rate: received_qty / demanded_qty (4 decimals). For compliant orders only"
-    nullable: true
-    precision: 4
-    source_table: sps_purchase_order
-
-  - name: otd
-    type: NUMERIC
-    description: "On-Time Delivery: on_time_orders / total_non_cancelled__po_orders (4 decimals)"
-    nullable: true
-    precision: 4
-    source_table: sps_purchase_order
-
-  - name: supplier_non_fulfilled_order_qty
-    type: NUMERIC
-    description: "Quantity from cancelled POs due to supplier non-fulfillment"
-    nullable: true
-    source_table: sps_purchase_order
-
-  - name: total_po_orders
-    type: INT64
-    description: "NEW (debug): Count of ALL POs (no filters) for debugging aggregation"
-    nullable: true
-    is_debug: true
-    source_table: sps_purchase_order
-
-  - name: total_compliant_po_orders
-    type: INT64
-    description: "NEW (debug): Count of ALL compliant POs (is_compliant_flag = TRUE)"
-    nullable: true
-    is_debug: true
-    source_table: sps_purchase_order
-
-  - name: total_received_qty_ALL
-    type: NUMERIC
-    description: "NEW (debug): Total received qty across ALL orders (no compliance filter)"
-    nullable: true
-    is_debug: true
-    source_table: sps_purchase_order
-
-  - name: total_demanded_qty_ALL
-    type: NUMERIC
-    description: "NEW (debug): Total demanded qty across ALL orders (no compliance filter)"
-    nullable: true
-    is_debug: true
-    source_table: sps_purchase_order
-
-  # ============================================================
-  # FINANCIAL METRICS (from sps_financial_metrics)
-  # ============================================================
-  - name: total_customers
-    type: INT64
-    description: "Count of distinct analytical customers"
-    nullable: true
-    source_table: sps_financial_metrics
-
-  - name: total_skus_sold
-    type: INT64
-    description: "Count of distinct SKUs sold"
-    nullable: true
-    source_table: sps_financial_metrics
-
-  - name: total_orders
-    type: INT64
-    description: "Count of distinct orders"
-    nullable: true
-    source_table: sps_financial_metrics
-
-  - name: total_warehouses_sold
-    type: INT64
-    description: "Count of distinct warehouses where sales occurred"
-    nullable: true
-    source_table: sps_financial_metrics
-
-  - name: Total_Net_Sales_eur_order
-    type: NUMERIC
-    description: "Total net sales in EUR (order-level aggregation). Precision: 2"
-    nullable: true
-    precision: 2
-    currency: EUR
-    source_table: sps_financial_metrics
-
-  - name: Net_Sales_eur
-    type: NUMERIC
-    description: "Net sales in EUR. Precision: 2"
-    nullable: true
-    precision: 2
-    currency: EUR
-    source_table: sps_financial_metrics
-
-  - name: COGS_eur
-    type: NUMERIC
-    description: "Cost of Goods Sold in EUR. Precision: 4"
-    nullable: true
-    precision: 4
-    currency: EUR
-    source_table: sps_financial_metrics
-
-  - name: Net_Sales_from_promo_eur
-    type: NUMERIC
-    description: "Net sales from promotional orders (unit_discount > 0) in EUR. Precision: 2"
-    nullable: true
-    precision: 2
-    currency: EUR
-    source_table: sps_financial_metrics
-
-  - name: total_supplier_funding_eur
-    type: NUMERIC
-    description: "Total supplier funding/rebates in EUR. Precision: 2"
-    nullable: true
-    precision: 2
-    currency: EUR
-    source_table: sps_financial_metrics
-
-  - name: front_margin_amt_eur
-    type: NUMERIC
-    description: "Front margin: Net_Sales_eur - COGS_eur in EUR. Precision: 2"
-    nullable: true
-    precision: 2
-    currency: EUR
-    source_table: sps_financial_metrics
-
-  - name: total_discount_eur
-    type: NUMERIC
-    description: "Total discounts in EUR. Precision: 4"
-    nullable: true
-    precision: 4
-    currency: EUR
-    source_table: sps_financial_metrics
-
-  - name: Promo_GPV_contribution_eur
-    type: NUMERIC
-    description: "Promotional GPV contribution: promo_sales / total_net_sales in EUR. Precision: 4"
-    nullable: true
-    precision: 4
-    source_table: sps_financial_metrics
-
-  - name: Total_Net_Sales_lc_order
-    type: NUMERIC
-    description: "Total net sales in Local Currency (order-level). Precision: 2"
-    nullable: true
-    precision: 2
-    currency: LC
-    source_table: sps_financial_metrics
-
-  - name: Net_Sales_lc
-    type: NUMERIC
-    description: "Net sales in Local Currency. Precision: 2"
-    nullable: true
-    precision: 2
-    currency: LC
-    source_table: sps_financial_metrics
-
-  - name: COGS_lc
-    type: NUMERIC
-    description: "Cost of Goods Sold in Local Currency. Precision: 4"
-    nullable: true
-    precision: 4
-    currency: LC
-    source_table: sps_financial_metrics
-
-  - name: Net_Sales_from_promo_lc
-    type: NUMERIC
-    description: "Net sales from promotional orders in Local Currency. Precision: 2"
-    nullable: true
-    precision: 2
-    currency: LC
-    source_table: sps_financial_metrics
-
-  - name: total_supplier_funding_lc
-    type: NUMERIC
-    description: "Total supplier funding in Local Currency. Precision: 2"
-    nullable: true
-    precision: 2
-    currency: LC
-    source_table: sps_financial_metrics
-
-  - name: front_margin_amt_lc
-    type: NUMERIC
-    description: "Front margin in Local Currency. Precision: 2"
-    nullable: true
-    precision: 2
-    currency: LC
-    source_table: sps_financial_metrics
-
-  - name: total_discount_lc
-    type: NUMERIC
-    description: "Total discounts in Local Currency. Precision: 4"
-    nullable: true
-    precision: 4
-    currency: LC
-    source_table: sps_financial_metrics
-
-  - name: Promo_GPV_contribution_lc
-    type: NUMERIC
-    description: "Promotional GPV contribution in Local Currency. Precision: 4"
-    nullable: true
-    precision: 4
-    source_table: sps_financial_metrics
-
-  - name: total_GBV
-    type: NUMERIC
-    description: "Total Gross Booking Value. Precision: 2"
-    nullable: true
-    precision: 2
-    currency: EUR
-    source_table: sps_financial_metrics
-
-  - name: fulfilled_quantity
-    type: NUMERIC
-    description: "Total fulfilled quantity. Precision: 2"
-    nullable: true
-    precision: 2
-    source_table: sps_financial_metrics
-
-  - name: Net_Sales_eur_Last_Year
-    type: NUMERIC
-    description: "Net sales in EUR from same period last year. Precision: 2"
-    nullable: true
-    precision: 2
-    currency: EUR
-    source_table: sps_financial_metrics
-
-  - name: Net_Sales_lc_Last_Year
-    type: NUMERIC
-    description: "Net sales in Local Currency from same period last year. Precision: 2"
-    nullable: true
-    precision: 2
-    currency: LC
-    source_table: sps_financial_metrics
-
-  - name: YoY_GPV_Growth_eur
-    type: NUMERIC
-    description: "Year-over-Year GPV growth in EUR. Precision: 3"
-    nullable: true
-    precision: 3
-    source_table: sps_financial_metrics
-
-  - name: YoY_GPV_Growth_lc
-    type: NUMERIC
-    description: "Year-over-Year GPV growth in Local Currency. Precision: 3"
-    nullable: true
-    precision: 3
-    source_table: sps_financial_metrics
-
-  - name: back_margin_amt_lc
-    type: NUMERIC
-    description: "Back margin (rebates) in Local Currency. Precision: 2"
-    nullable: true
-    precision: 2
-    currency: LC
-    source_table: sps_financial_metrics
-
-  - name: back_margin_wo_dist_allowance_amt_lc
-    type: NUMERIC
-    description: "Back margin without distribution allowance in Local Currency. Precision: 2"
-    nullable: true
-    precision: 2
-    currency: LC
-    source_table: sps_financial_metrics
-
-  - name: Total_Margin_LC
-    type: NUMERIC
-    description: "Total margin (Front + Back) in Local Currency: (Net_Sales + funding - COGS + rebates) / Net_Sales. Precision: 4"
-    nullable: true
-    precision: 4
-    source_table: sps_financial_metrics
-
-  - name: Front_Margin_eur
-    type: NUMERIC
-    description: "Front margin percentage in EUR. Precision: 4"
-    nullable: true
-    precision: 4
-    source_table: sps_financial_metrics
-
-  - name: Front_Margin_lc
-    type: NUMERIC
-    description: "Front margin percentage in Local Currency. Precision: 4"
-    nullable: true
-    precision: 4
-    source_table: sps_financial_metrics
-
-  # ============================================================
-  # LINE REBATE METRICS (from sps_line_rebate_metrics)
-  # ============================================================
-  - name: net_purchase
-    type: NUMERIC
-    description: "Net purchase: sku_calc_net_delivered - sku_calc_net_return. Precision: 2"
-    nullable: true
-    precision: 2
-    source_table: sps_line_rebate_metrics
-
-  - name: total_rebate
-    type: NUMERIC
-    description: "Total line rebate amount. Precision: 2"
-    nullable: true
-    precision: 2
-    source_table: sps_line_rebate_metrics
-
-  - name: total_rebate_wo_dist_allowance_lc
-    type: NUMERIC
-    description: "Total rebate without distribution allowance in Local Currency. Precision: 4"
-    nullable: true
-    precision: 4
-    source_table: sps_line_rebate_metrics
-
-  - name: calc_gross_delivered
-    type: NUMERIC
-    description: "NEW (ingrediente): Gross delivered quantity. Precision: 2"
-    nullable: true
-    precision: 2
-    is_ingredient: true
-    source_table: sps_line_rebate_metrics
-
-  - name: calc_gross_return
-    type: NUMERIC
-    description: "NEW (ingrediente): Gross return quantity. Precision: 2"
-    nullable: true
-    precision: 2
-    is_ingredient: true
-    source_table: sps_line_rebate_metrics
-
-  - name: calc_net_delivered
-    type: NUMERIC
-    description: "NEW (ingrediente): Net delivered quantity (for Tableau aggregation). Precision: 2"
-    nullable: true
-    precision: 2
-    is_ingredient: true
-    source_table: sps_line_rebate_metrics
-
-  - name: calc_net_return
-    type: NUMERIC
-    description: "NEW (ingrediente): Net return quantity (for Tableau aggregation). Precision: 2"
-    nullable: true
-    precision: 2
-    is_ingredient: true
-    source_table: sps_line_rebate_metrics
-
-  # ============================================================
-  # PRICE INDEX (from sps_price_index)
-  # ============================================================
   - name: price_index_numerator
-    type: NUMERIC
-    description: "NEW (ingrediente): Numerator for median price index. Tableau formula: SUM(price_index_numerator) / SUM(price_index_weight). Precision: 4"
+    type: FLOAT
     nullable: true
-    precision: 4
+    source: sps_price_index
+    description: "NEW: Numerator for weighted price index. Tableau: SUM(price_index_numerator) / SUM(price_index_weight)"
     is_ingredient: true
-    source_table: sps_price_index
 
   - name: price_index_weight
-    type: NUMERIC
-    description: "NEW (ingrediente): Weight/denominator for median price index (GPV-based). Precision: 4"
+    type: FLOAT
     nullable: true
-    precision: 4
+    source: sps_price_index
+    description: "NEW: Weight for price index (GPV-based). Use as denominator in Tableau"
     is_ingredient: true
-    source_table: sps_price_index
-
-  - name: median_price_index
-    type: NUMERIC
-    description: "Weighted median basis point index (deprecated in Tableau v7, use ingredientes). Precision: 2"
-    nullable: true
-    precision: 2
-    deprecated: true
-    source_table: sps_price_index
 
   # ============================================================
   # DAYS PAYABLE METRICS (from sps_days_payable)
   # ============================================================
   - name: payment_days
-    type: INT64
-    description: "Days to payment (MAX across aggregation)"
+    type: INTEGER
     nullable: true
-    source_table: sps_days_payable
+    source: sps_days_payable
 
   - name: doh
-    type: NUMERIC
-    description: "Days on Hand (calculated field, varies by granularity). Deprecated in Tableau v7; use ingredientes instead"
+    type: FLOAT
     nullable: true
-    deprecated: true
-    source_table: sps_days_payable
+    source: sps_days_payable
+    description: "Days on Hand (deprecated). Use stock_value_eur/cogs_monthly_eur for calculation"
+    note: "Deprecated in Tableau v7"
 
   - name: dpo
-    type: NUMERIC
-    description: "Days Payable Outstanding: payment_days - doh. Deprecated in Tableau v7; use ingredientes instead"
+    type: FLOAT
     nullable: true
-    deprecated: true
-    source_table: sps_days_payable
+    source: sps_days_payable
+    description: "Days Payable Outstanding (deprecated). Use payment_days - calculated_doh"
+    note: "Deprecated in Tableau v7"
 
   - name: stock_value_eur
-    type: NUMERIC
-    description: "NEW (ingrediente): Stock value in EUR (SUM). Use for DOH calculation: stock_value_eur / (cogs_monthly_eur / days_in_month)"
+    type: FLOAT
     nullable: true
+    source: sps_days_payable
+    description: "NEW: Stock value in EUR. Ingredient for DOH calculation"
     is_ingredient: true
-    currency: EUR
-    source_table: sps_days_payable
 
   - name: cogs_monthly_eur
     type: NUMERIC
-    description: "NEW (ingrediente): Monthly COGS in EUR (SUM). Use for DOH calculation"
     nullable: true
+    source: sps_days_payable
+    description: "NEW: Monthly COGS in EUR. Ingredient for DOH calculation"
     is_ingredient: true
-    currency: EUR
-    source_table: sps_days_payable
 
   - name: days_in_month
-    type: INT64
-    description: "NEW (ingrediente): Days in month (MAX). Use for monthly DOH calculation"
+    type: INTEGER
     nullable: true
+    source: sps_days_payable
+    description: "NEW: Days in month. Ingredient for monthly DOH calculation"
     is_ingredient: true
-    source_table: sps_days_payable
 
   - name: days_in_quarter
-    type: INT64
-    description: "NEW (ingrediente): Days in quarter (MAX). Use for quarterly DOH calculation: stock_value_eur / (cogs_monthly_eur / (days_in_quarter / 3))"
+    type: INTEGER
     nullable: true
+    source: sps_days_payable
+    description: "NEW: Days in quarter. Ingredient for quarterly DOH calculation"
     is_ingredient: true
-    source_table: sps_days_payable
+
+  # ============================================================
+  # FINANCIAL METRICS (from sps_financial_metrics)
+  # ============================================================
+  - name: total_customers
+    type: INTEGER
+    nullable: true
+    source: sps_financial_metrics
+
+  - name: total_skus_sold
+    type: INTEGER
+    nullable: true
+    source: sps_financial_metrics
+
+  - name: total_orders
+    type: INTEGER
+    nullable: true
+    source: sps_financial_metrics
+
+  - name: total_warehouses_sold
+    type: INTEGER
+    nullable: true
+    source: sps_financial_metrics
+
+  - name: Total_Net_Sales_eur_order
+    type: NUMERIC
+    nullable: true
+    source: sps_financial_metrics
+    currency: EUR
+
+  - name: Net_Sales_eur
+    type: NUMERIC
+    nullable: true
+    source: sps_financial_metrics
+    currency: EUR
+
+  - name: COGS_eur
+    type: NUMERIC
+    nullable: true
+    source: sps_financial_metrics
+    currency: EUR
+
+  - name: Net_Sales_from_promo_eur
+    type: NUMERIC
+    nullable: true
+    source: sps_financial_metrics
+    currency: EUR
+
+  - name: total_supplier_funding_eur
+    type: NUMERIC
+    nullable: true
+    source: sps_financial_metrics
+    currency: EUR
+
+  - name: front_margin_amt_eur
+    type: NUMERIC
+    nullable: true
+    source: sps_financial_metrics
+    currency: EUR
+
+  - name: total_discount_eur
+    type: NUMERIC
+    nullable: true
+    source: sps_financial_metrics
+    currency: EUR
+
+  - name: Promo_GPV_contribution_eur
+    type: NUMERIC
+    nullable: true
+    source: sps_financial_metrics
+
+  - name: Total_Net_Sales_lc_order
+    type: NUMERIC
+    nullable: true
+    source: sps_financial_metrics
+    currency: LC
+
+  - name: Net_Sales_lc
+    type: NUMERIC
+    nullable: true
+    source: sps_financial_metrics
+    currency: LC
+
+  - name: COGS_lc
+    type: NUMERIC
+    nullable: true
+    source: sps_financial_metrics
+    currency: LC
+
+  - name: Net_Sales_from_promo_lc
+    type: NUMERIC
+    nullable: true
+    source: sps_financial_metrics
+    currency: LC
+
+  - name: total_supplier_funding_lc
+    type: NUMERIC
+    nullable: true
+    source: sps_financial_metrics
+    currency: LC
+
+  - name: front_margin_amt_lc
+    type: NUMERIC
+    nullable: true
+    source: sps_financial_metrics
+    currency: LC
+
+  - name: total_discount_lc
+    type: NUMERIC
+    nullable: true
+    source: sps_financial_metrics
+    currency: LC
+
+  - name: Promo_GPV_contribution_lc
+    type: NUMERIC
+    nullable: true
+    source: sps_financial_metrics
+
+  - name: total_GBV
+    type: NUMERIC
+    nullable: true
+    source: sps_financial_metrics
+    currency: EUR
+
+  - name: fulfilled_quantity
+    type: NUMERIC
+    nullable: true
+    source: sps_financial_metrics
+
+  - name: Net_Sales_eur_Last_Year
+    type: NUMERIC
+    nullable: true
+    source: sps_financial_metrics
+    currency: EUR
+
+  - name: Net_Sales_lc_Last_Year
+    type: NUMERIC
+    nullable: true
+    source: sps_financial_metrics
+    currency: LC
+
+  - name: YoY_GPV_Growth_eur
+    type: NUMERIC
+    nullable: true
+    source: sps_financial_metrics
+
+  - name: YoY_GPV_Growth_lc
+    type: NUMERIC
+    nullable: true
+    source: sps_financial_metrics
+
+  - name: back_margin_amt_lc
+    type: FLOAT
+    nullable: true
+    source: sps_financial_metrics
+    currency: LC
+
+  - name: back_margin_wo_dist_allowance_amt_lc
+    type: FLOAT
+    nullable: true
+    source: sps_financial_metrics
+    currency: LC
+
+  - name: Total_Margin_LC
+    type: NUMERIC
+    nullable: true
+    source: sps_financial_metrics
+
+  - name: Front_Margin_eur
+    type: NUMERIC
+    nullable: true
+    source: sps_financial_metrics
+
+  - name: Front_Margin_lc
+    type: NUMERIC
+    nullable: true
+    source: sps_financial_metrics
+
+  # ============================================================
+  # LINE REBATE METRICS (from sps_line_rebate_metrics)
+  # ============================================================
+  - name: total_rebate
+    type: FLOAT
+    nullable: true
+    source: sps_line_rebate_metrics
+
+  - name: total_rebate_wo_dist_allowance_lc
+    type: FLOAT
+    nullable: true
+    source: sps_line_rebate_metrics
+
+  - name: calc_gross_delivered
+    type: FLOAT
+    nullable: true
+    source: sps_line_rebate_metrics
+    description: "NEW: Gross delivered quantity ingredient"
+    is_ingredient: true
+
+  - name: calc_gross_return
+    type: FLOAT
+    nullable: true
+    source: sps_line_rebate_metrics
+    description: "NEW: Gross return quantity ingredient"
+    is_ingredient: true
+
+  - name: calc_net_delivered
+    type: FLOAT
+    nullable: true
+    source: sps_line_rebate_metrics
+    description: "NEW: Net delivered quantity ingredient"
+    is_ingredient: true
+
+  - name: calc_net_return
+    type: FLOAT
+    nullable: true
+    source: sps_line_rebate_metrics
+    description: "NEW: Net return quantity ingredient"
+    is_ingredient: true
 
   # ============================================================
   # EFFICIENCY METRICS (from sps_efficiency)
   # ============================================================
   - name: sku_listed
-    type: INT64
-    description: "Total SKUs listed in this period"
+    type: INTEGER
     nullable: true
-    source_table: sps_efficiency
+    source: sps_efficiency
 
   - name: sku_mature
-    type: INT64
-    description: "SKUs with 90+ days on listing"
+    type: INTEGER
     nullable: true
-    source_table: sps_efficiency
-
-  - name: sku_probation
-    type: INT64
-    description: "SKUs in probation period (30-90 days on listing)"
-    nullable: true
-    source_table: sps_efficiency
+    source: sps_efficiency
 
   - name: sku_new
-    type: INT64
-    description: "New SKUs (0-30 days on listing)"
+    type: INTEGER
     nullable: true
-    source_table: sps_efficiency
+    source: sps_efficiency
+
+  - name: sku_probation
+    type: INTEGER
+    nullable: true
+    source: sps_efficiency
 
   - name: efficient_movers
-    type: INT64
-    description: "Mature SKUs with sales >= 1 unit/day"
+    type: INTEGER
     nullable: true
-    source_table: sps_efficiency
-
-  - name: new_zero_movers
-    type: INT64
-    description: "New SKUs (0-30 days) with zero sales"
-    nullable: true
-    source_table: sps_efficiency
-
-  - name: new_slow_movers
-    type: INT64
-    description: "New SKUs (0-30 days) with sales < 1 unit/day"
-    nullable: true
-    source_table: sps_efficiency
-
-  - name: new_efficient_movers
-    type: INT64
-    description: "New/probation SKUs with sales >= 1 unit/day"
-    nullable: true
-    source_table: sps_efficiency
-
-  - name: sold_items
-    type: NUMERIC
-    description: "Total items sold. Precision: 1"
-    nullable: true
-    precision: 1
-    source_table: sps_efficiency
-
-  - name: gpv_eur
-    type: NUMERIC
-    description: "Gross profit value in EUR. Precision: 1"
-    nullable: true
-    precision: 1
-    currency: EUR
-    source_table: sps_efficiency
+    source: sps_efficiency
 
   - name: numerator_new_avail
-    type: NUMERIC
-    description: "NEW (ingrediente AQS v7): Numerator for availability calculation. Tableau: SUM(numerator_new_avail) / SUM(denom_new_avail)"
+    type: FLOAT
     nullable: true
+    source: sps_efficiency
+    description: "NEW: Availability metric numerator (AQS v7). Tableau: SUM(numerator_new_avail) / SUM(denom_new_avail)"
     is_ingredient: true
-    source_table: sps_efficiency
 
   - name: denom_new_avail
-    type: NUMERIC
-    description: "NEW (ingrediente AQS v7): Denominator for availability calculation"
+    type: FLOAT
     nullable: true
+    source: sps_efficiency
+    description: "NEW: Availability metric denominator (AQS v7)"
     is_ingredient: true
-    source_table: sps_efficiency
 
   - name: weight_efficiency
-    type: NUMERIC
-    description: "NEW (ingrediente AQS v7): Weighted efficiency metric. Tableau: SUM(weight_efficiency) / SUM(gpv_eur). Precision: 4"
+    type: FLOAT
     nullable: true
-    precision: 4
+    source: sps_efficiency
+    description: "NEW: Weighted efficiency (AQS v7). Tableau: SUM(weight_efficiency) / SUM(gpv_eur)"
     is_ingredient: true
-    source_table: sps_efficiency
+
+  - name: gpv_eur
+    type: FLOAT
+    nullable: true
+    source: sps_efficiency
+    currency: EUR
 
   # ============================================================
-  # LISTED SKU COUNT (from sps_listed_sku)
+  # LISTED SKU METRICS (from sps_listed_sku)
   # ============================================================
   - name: listed_skus
-    type: INT64
-    description: "Count of distinct listed SKUs"
+    type: INTEGER
     nullable: true
-    source_table: sps_listed_sku
+    source: sps_listed_sku
+
+  - name: listed_skus_efficiency
+    type: INTEGER
+    nullable: true
+    source: sps_listed_sku
+    description: "NEW: Listed SKUs count from efficiency table (may differ from listed_skus)"
 
   # ============================================================
   # SHRINKAGE METRICS (from sps_shrinkage)
   # ============================================================
   - name: spoilage_value_eur
-    type: NUMERIC
-    description: "NEW (renamed): Spoilage value in EUR (was spoilage_value)"
+    type: FLOAT
     nullable: true
+    source: sps_shrinkage
     currency: EUR
-    source_table: sps_shrinkage
 
   - name: spoilage_value_lc
     type: NUMERIC
-    description: "NEW: Spoilage value in Local Currency (multi-currency support)"
     nullable: true
+    source: sps_shrinkage
     currency: LC
-    source_table: sps_shrinkage
+    description: "NEW: Multi-currency support"
 
   - name: retail_revenue_eur
-    type: NUMERIC
-    description: "NEW (renamed): Retail revenue in EUR (was retail_revenue)"
+    type: FLOAT
     nullable: true
+    source: sps_shrinkage
     currency: EUR
-    source_table: sps_shrinkage
 
   - name: retail_revenue_lc
-    type: NUMERIC
-    description: "NEW: Retail revenue in Local Currency (multi-currency support)"
+    type: FLOAT
     nullable: true
+    source: sps_shrinkage
     currency: LC
-    source_table: sps_shrinkage
+    description: "NEW: Multi-currency support"
 
   - name: spoilage_rate
-    type: NUMERIC
-    description: "Spoilage rate: spoilage_value_eur / retail_revenue_eur. Tableau: SUM(spoilage_value_eur) / SUM(retail_revenue_eur)"
+    type: FLOAT
     nullable: true
-    source_table: sps_shrinkage
+    source: sps_shrinkage
+    description: "Tableau: SUM(spoilage_value_eur) / SUM(retail_revenue_eur)"
 
   # ============================================================
   # DELIVERY COSTS (from sps_delivery_costs)
   # ============================================================
   - name: delivery_cost_eur
-    type: NUMERIC
-    description: "Allocated delivery cost in EUR"
+    type: FLOAT
     nullable: true
+    source: sps_delivery_costs
     currency: EUR
-    source_table: sps_delivery_costs
 
   - name: delivery_cost_local
-    type: NUMERIC
-    description: "Allocated delivery cost in Local Currency"
+    type: FLOAT
     nullable: true
+    source: sps_delivery_costs
     currency: LC
-    source_table: sps_delivery_costs
+
+  # ============================================================
+  # PURCHASE ORDER METRICS (from sps_purchase_order)
+  # ============================================================
+  - name: on_time_orders
+    type: INTEGER
+    nullable: true
+    source: sps_purchase_order
+
+  - name: total_received_qty_per_po_order
+    type: INTEGER
+    nullable: true
+    source: sps_purchase_order
+
+  - name: total_demanded_qty_per_po_order
+    type: INTEGER
+    nullable: true
+    source: sps_purchase_order
+
+  - name: total_cancelled_po_orders
+    type: INTEGER
+    nullable: true
+    source: sps_purchase_order
+
+  - name: total_non_cancelled__po_orders
+    type: INTEGER
+    nullable: true
+    source: sps_purchase_order
+
+  - name: fill_rate
+    type: FLOAT
+    nullable: true
+    source: sps_purchase_order
+
+  - name: otd
+    type: FLOAT
+    nullable: true
+    source: sps_purchase_order
+    description: "On-Time Delivery"
+
+  - name: supplier_non_fulfilled_order_qty
+    type: INTEGER
+    nullable: true
+    source: sps_purchase_order
+
+  - name: total_po_orders
+    type: INTEGER
+    nullable: true
+    source: sps_purchase_order
+    description: "NEW (debug): Total POs without filters"
+    is_debug: true
+
+  - name: total_compliant_po_orders
+    type: INTEGER
+    nullable: true
+    source: sps_purchase_order
+    description: "NEW (debug): Total compliant POs"
+    is_debug: true
+
+  - name: total_received_qty_ALL
+    type: INTEGER
+    nullable: true
+    source: sps_purchase_order
+    description: "NEW (debug): Received qty across ALL orders"
+    is_debug: true
+
+  - name: total_demanded_qty_ALL
+    type: INTEGER
+    nullable: true
+    source: sps_purchase_order
+    description: "NEW (debug): Demanded qty across ALL orders"
+    is_debug: true
 
 metadata:
-  total_columns: "~90-100+ (explicit + sfm.* EXCEPT + slrm.* EXCEPT; validate in BQ schema)"
+  total_columns: 84
 
   source_tables:
     - all_keys (UNION DISTINCT of 9 tables)
@@ -672,28 +533,21 @@ metadata:
     - sps_shrinkage
     - sps_delivery_costs
 
-  join_strategy: "9 LEFT JOINs from all_keys UNION base (NEW: ensures all unique key combinations are covered)"
-
-  key_innovation: "all_keys UNION DISTINCT collects keys from ALL 9 source tables, not just sps_purchase_order. Guarantees zero data loss even if a key exists in efficiency but not in purchase_order"
-
   aggregation_keys: [global_entity_id, time_period, brand_sup, entity_key, division_type, supplier_level, time_granularity]
 
   lookback_period: "Last 4 quarters (1 year)"
 
-  granularity: "Monthly and Quarterly (driven by time_granularity field)"
-
-  update_frequency: "Incremental refresh (compatible with both full and incremental pipelines)"
+  update_frequency: "Incremental refresh"
 
   clustering: "global_entity_id"
 
-  new_features:
-    - "3-CTE efficiency refactor (AQS v7 methodology): SKU counts, warehouse-level additive metrics, weight_efficiency ingredient"
-    - "Ingredientes for correct Tableau aggregation: price_index_numerator/weight, stock_value_eur/cogs_monthly_eur, numerator_new_avail/denom_new_avail, weight_efficiency"
-    - "Multi-currency support: spoilage_value_eur/lc, retail_revenue_eur/lc, delivery_cost_eur/local"
-    - "Debug fields: total_po_orders, total_compliant_po_orders, total_received_qty_ALL, total_demanded_qty_ALL"
-    - "AQS v7 efficiency weights for better portfolio performance modeling"
+  key_features:
+    - "all_keys UNION DISTINCT architecture ensures coverage of all unique key combinations across 9 source tables"
+    - "Ingredientes for Tableau aggregation (price_index, DOH, availability, weight_efficiency)"
+    - "Multi-currency support (EUR + LC)"
+    - "Debug fields for order aggregation validation"
+    - "AQS v7 efficiency methodology"
 
-  backwards_compatibility:
-    - "median_price_index: DEPRECATED (use price_index_numerator/price_index_weight instead)"
-    - "doh, dpo: DEPRECATED (use stock_value_eur, cogs_monthly_eur, days_in_month/quarter instead)"
-    - "spoilage_value → spoilage_value_eur, retail_revenue → retail_revenue_eur (renamed for clarity)"
+  deprecated_fields:
+    - "median_price_index: use price_index_numerator/price_index_weight"
+    - "doh, dpo: use ingredients (stock_value_eur, cogs_monthly_eur, days_in_month/quarter)"
