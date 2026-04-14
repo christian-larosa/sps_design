@@ -658,7 +658,7 @@ columns:
     source_table: sps_delivery_costs
 
 metadata:
-  total_columns: 119
+  total_columns: "~90-100+ (explicit + sfm.* EXCEPT + slrm.* EXCEPT; validate in BQ schema)"
 
   source_tables:
     - all_keys (UNION DISTINCT of 9 tables)
