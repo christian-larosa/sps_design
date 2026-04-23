@@ -63,7 +63,15 @@ base AS (
     CASE
       WHEN COALESCE(Net_Sales_eur, 0) < 1000 THEN 'Not Applicable'
       ELSE 'OK'
-    END                                                      AS gpv_flag
+    END                                                      AS gpv_flag,
+
+    -- Market context: denominadores para penetración
+    -- Requeridos para análisis autocontenido sin JOIN externo
+    total_customers,
+    total_orders,
+    total_market_customers,
+    Net_Sales_eur,
+    Net_Sales_lc
 
   FROM `dh-darkstores-live.csm_automated_tables.sps_score_tableau`
   WHERE supplier_level   = 'supplier'
@@ -217,7 +225,14 @@ final AS (
       WHEN importance_score_lc <= 15 AND (abv_score_lc + frequency_score + customer_penetration_score) >= 40
         THEN 'Niche'
       ELSE 'Long Tail'
-    END                                                      AS segment_lc
+    END                                                      AS segment_lc,
+
+    -- Market context: required for self-contained analysis
+    total_customers,
+    total_orders,
+    total_market_customers,
+    Net_Sales_eur,
+    Net_Sales_lc
 
   FROM scoring
 )

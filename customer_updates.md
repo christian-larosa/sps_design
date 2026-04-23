@@ -121,9 +121,39 @@ Enables Tableau to calculate:
 
 ---
 
+## 4. flat_sps_supplier_segmentation.sql — Architecture Refactor ✅
+
+**Status:** Updated (Self-Contained)
+
+### Problem
+The segmentation table required external JOINs to sps_score_tableau to access essential financial and customer metrics (total_customers, total_orders, Net_Sales_eur, Net_Sales_lc), defeating the purpose of having a dedicated segmentation table.
+
+### Solution
+Added five context fields to the segmentation table's SELECT list:
+- `total_customers` — Unique supplier customers per period
+- `total_orders` — Total orders placed from supplier per period
+- `total_market_customers` — Platform-wide customer count (for penetration denominator)
+- `Net_Sales_eur` — Gross sales in EUR
+- `Net_Sales_lc` — Gross sales in local currency
+
+### Changes
+**Propagated through all CTEs:**
+1. **base** (lines 68-74): Added five fields to SELECT
+2. **percentiles** (lines 125-131): Pass through in SELECT
+3. **scoring** (lines 187-192): Pass through as `b.field_name`
+4. **final** (lines 242-247): Include in final SELECT output
+
+### Impact
+- Segmentation table is now **self-contained** — no external JOIN required
+- Analysts can analyze segment composition with financial context directly
+- Enables direct Tableau dashboard from sps_supplier_segmentation (no denormalization step)
+
+---
+
 ## Next Steps
 
-- Monitor sps_score_tableau in Tableau for market penetration metrics
+- Monitor sps_supplier_segmentation in Tableau for segment composition and financial patterns
 - Validate no regressions in existing supplier-level metrics
-- Document new metrics in data dictionary if needed
+- Document segment thresholds in data dictionary (importance > 15, productivity >= 40)
+- Monitor top-decile Key Accounts for growth and penetration trends
 
