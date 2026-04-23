@@ -14,6 +14,8 @@ AS
 DECLARE param_month            STRING DEFAULT '2026-04-01';
 DECLARE param_country_code     STRING DEFAULT r'eg|cl|sg|th|hu|es|jo|kw|ar|ae|qa|pe|tr|ua|it|om|bh|hk|ph|sa';
 DECLARE param_global_entity_id STRING DEFAULT r'TB_EG|TB_CL|TB_SG|TB_TH|TB_HU|TB_ES|TB_JO|TB_KW|TB_AR|TB_AE|TB_QA|TB_PE|TB_TR|TB_UA|TB_IT|TB_OM|TB_BH|TB_HK|TB_PH|TB_SA';
+DECLARE param_date_start       DATE   DEFAULT DATE('2025-10-01');
+DECLARE param_date_end         DATE   DEFAULT CURRENT_DATE();
 -- ─────────────────────────────────────────────────────────────
 
 WITH
@@ -139,8 +141,7 @@ tmp_orders AS (
     COALESCE(i.value_lc.djini_order_items_supplier_funded_lc, 0) AS total_supplier_funding_lc 
   FROM `fulfillment-dwh-production.cl_dmart.qc_orders` AS o
   LEFT JOIN UNNEST(o.items) AS i
-  WHERE DATE(o.order_created_date_lt) >= DATE('2025-10-01')
-    AND DATE(o.order_created_date_lt) < CURRENT_DATE()
+  WHERE DATE(o.order_created_date_lt) BETWEEN param_date_start AND param_date_end
     AND o.is_dmart IS TRUE
     AND o.is_successful IS TRUE
     AND REGEXP_CONTAINS(o.country_code, param_country_code)

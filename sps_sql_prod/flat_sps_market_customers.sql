@@ -14,15 +14,11 @@ AS
 
 -- ── PARAMS ───────────────────────────────────────────────────
 DECLARE param_country_code STRING DEFAULT r'eg|cl|sg|th|hu|es|jo|kw|ar|ae|qa|pe|tr|ua|it|om|bh|hk|ph|sa';
+DECLARE param_date_start   DATE   DEFAULT DATE('2025-10-01');
+DECLARE param_date_end     DATE   DEFAULT CURRENT_DATE();
 -- ─────────────────────────────────────────────────────────────
 
 WITH
-date_in AS (
-  SELECT DATE('2025-10-01') AS date_in
-),
-date_fin AS (
-  SELECT CURRENT_DATE() AS date_fin
-),
 
 -- Base: todas las órdenes del periodo, sin filtro de supplier
 -- Grain: order_id × analytical_customer_id × fecha
@@ -38,8 +34,7 @@ base AS (
     ) AS STRING) AS quarter_year
   FROM `dh-darkstores-live.csm_automated_tables.sps_customer_order`
   WHERE REGEXP_CONTAINS(country_code, param_country_code)
-    AND (order_date BETWEEN (SELECT date_in FROM date_in).date_in
-                        AND (SELECT date_fin FROM date_fin).date_fin)
+    AND order_date BETWEEN param_date_start AND param_date_end
   -- Sin GROUP BY de supplier — queremos todos los clientes de la plataforma
   -- independientemente de qué supplier compraron
 ),

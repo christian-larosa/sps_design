@@ -16,6 +16,8 @@ AS
 -- ── PARAMS ───────────────────────────────────────────────────
 DECLARE param_country_code     STRING DEFAULT r'eg|cl|sg|th|hu|es|jo|kw|ar|ae|qa|pe|tr|ua|it|om|bh|hk|ph|sa';
 DECLARE param_global_entity_id STRING DEFAULT r'TB_EG|TB_CL|TB_SG|TB_TH|TB_HU|TB_ES|TB_JO|TB_KW|TB_AR|TB_AE|TB_QA|TB_PE|TB_TR|TB_UA|TB_IT|TB_OM|TB_BH|TB_HK|TB_PH|TB_SA';
+DECLARE param_date_start       DATE   DEFAULT DATE('2025-10-01');
+DECLARE param_date_end         DATE   DEFAULT CURRENT_DATE();
 -- ─────────────────────────────────────────────────────────────
 
 WITH
@@ -438,8 +440,8 @@ purchase_orders AS (
  LEFT JOIN
    UNNEST(pp.receiving) AS receiving
  WHERE
-   -- DYNAMIC 24-MONTH FILTER HARDCODED FOR DEBUG
-   DATE(po.fulfilled_localtime_at) BETWEEN DATE('2023-10-01') AND DATE('2025-09-30')
+   -- Date range: param_date_start (2025-10-01) to param_date_end (CURRENT_DATE)
+   DATE(po.fulfilled_localtime_at) BETWEEN param_date_start AND param_date_end
  GROUP BY
    1, 2, 3, 4, 5, 6, 7, 8
 ),
@@ -470,8 +472,8 @@ store_transfers_base AS (
  -- Applying the completed status filter here for early efficiency
  WHERE
    status_history.status = 'COMPLETED'
-   -- DYNAMIC 24-MONTH FILTER HARDCODED FOR DEBUG
-   AND DATE(status_history.modified_at) BETWEEN DATE('2023-10-01') AND DATE('2025-09-30')
+   -- Date range: param_date_start (2025-10-01) to param_date_end (CURRENT_DATE)
+   AND DATE(status_history.modified_at) BETWEEN param_date_start AND param_date_end
 ),
 --- CTE : sku and warehouse transfers from DC (Centralized)------------------
 sku_wh_centralized AS (
