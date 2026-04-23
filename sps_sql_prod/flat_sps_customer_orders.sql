@@ -40,8 +40,8 @@ tmp_sp_product AS (
     COALESCE(sp.level_three, '_unknown_') AS level_three,
     sp.region_code,
     MAX(sp.updated_at) AS last_updated
-  FROM `{{ params.project_id }}.{{ params.dataset.cl }}.sps_product` AS sp
-  WHERE REGEXP_CONTAINS(sp.global_entity_id, {{ params.param_global_entity_id }})
+  FROM `dh-darkstores-live.csm_dev_automated_tables.sps_product` AS sp
+  WHERE REGEXP_CONTAINS(sp.global_entity_id, param_global_entity_id)
   GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17
 ),
 ranked_global_product AS (
@@ -238,10 +238,7 @@ SELECT
   COALESCE(sp_exact.level_three, sp_fallback.level_three, '_unknown_') AS level_three,
   COALESCE(sp_exact.region_code, sp_fallback.region_code) AS region_code,
   -- 8. Partitioning
-  CASE
-    WHEN DATE_TRUNC(te_o.order_date, MONTH) = DATE_TRUNC(CAST('{{ next_ds }}' AS DATE), MONTH) THEN CAST('{{ next_ds }}' AS DATE)
-    ELSE LAST_DAY(DATE_TRUNC(te_o.order_date, MONTH))
-  END AS partition_month
+  DATE_TRUNC(te_o.order_date, MONTH) AS partition_month
 FROM tmp_orders AS te_o
 LEFT JOIN tmp_sp_product AS sp_exact
   ON te_o.sku_id = sp_exact.sku_id
