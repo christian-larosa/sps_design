@@ -1,14 +1,20 @@
--- This table extracts and maintains the days payable metrics mapping required for generating Supplier Scorecards. 
+-- ── PARAMS ───────────────────────────────────────────────────
+DECLARE param_global_entity_id STRING DEFAULT r'TB_EG|TB_CL|TB_SG|TB_TH|TB_HU|TB_ES|TB_JO|TB_KW|TB_AR|TB_AE|TB_QA|TB_PE|TB_TR|TB_UA|TB_IT|TB_OM|TB_BH|TB_HK|TB_PH|TB_SA';
+DECLARE param_date_start       DATE   DEFAULT DATE('2025-10-01');
+DECLARE param_date_end         DATE   DEFAULT CURRENT_DATE();
+-- ─────────────────────────────────────────────────────────────
+
+-- This table extracts and maintains the days payable metrics mapping required for generating Supplier Scorecards.
 -- SPS Execution: Position No. 9.1
 -- DML SCRIPT: SPS Refact Incremental Refresh for dh-darkstores-live.csm_automated_tables.sps_days_payable_month
 CREATE OR REPLACE TABLE `dh-darkstores-live.csm_automated_tables.sps_days_payable_month`
 AS
 WITH
 date_in AS (
-  SELECT DATE('2025-10-01') AS date_in
+  SELECT param_date_start AS date_in
 ),
 date_fin AS (
-  SELECT CURRENT_DATE() AS date_fin
+  SELECT param_date_end AS date_fin
 ),
 pim AS (
     SELECT product_id, brand_owner_name
@@ -23,7 +29,7 @@ pim AS (
       pim_product_id, 
       brand_name
     FROM `fulfillment-dwh-production.cl_dmart.qc_catalog_products`
-    WHERE global_entity_id = 'PY_PE'
+    WHERE REGEXP_CONTAINS(global_entity_id, param_global_entity_id)
     GROUP BY 1, 2, 3, 4, 5
   ),
   products AS (
@@ -42,7 +48,7 @@ pim AS (
       ANY_VALUE(sm.sup_id_parent) AS principal_supplier_id,
       sm.division_type
     FROM `dh-darkstores-live.csm_automated_tables.sps_product` AS sm
-    WHERE sm.global_entity_id = 'PY_PE'
+    WHERE REGEXP_CONTAINS(sm.global_entity_id, param_global_entity_id)
     GROUP BY ALL
   ),
   account AS (
@@ -101,7 +107,7 @@ pim AS (
       SUM(sd.month_end_stock_value_eur) sku_month_end_stock_value_eur,
       SUM(sd.cogs_eur_monthy) AS sku_cogs_eur_monthy,
     FROM `fulfillment-dwh-production.cl_dmart.stock_days_on_hand` AS sd
-    WHERE sd.global_entity_id = 'PY_PE'
+    WHERE sd.global_entity_id REGEXP_CONTAINS(global_entity_id, param_global_entity_id)
       AND (sd.month BETWEEN (SELECT date_in FROM date_in).date_in AND (SELECT date_fin FROM date_fin).date_fin)
     GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
   )

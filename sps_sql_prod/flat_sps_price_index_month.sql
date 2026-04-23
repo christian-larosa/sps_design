@@ -1,14 +1,20 @@
--- This table extracts and maintains the efficiency metrics mapping required for generating Supplier Scorecards. 
+-- ── PARAMS ───────────────────────────────────────────────────
+DECLARE param_global_entity_id STRING DEFAULT r'TB_EG|TB_CL|TB_SG|TB_TH|TB_HU|TB_ES|TB_JO|TB_KW|TB_AR|TB_AE|TB_QA|TB_PE|TB_TR|TB_UA|TB_IT|TB_OM|TB_BH|TB_HK|TB_PH|TB_SA';
+DECLARE param_date_start       DATE   DEFAULT DATE('2025-10-01');
+DECLARE param_date_end         DATE   DEFAULT CURRENT_DATE();
+-- ─────────────────────────────────────────────────────────────
+
+-- This table extracts and maintains the efficiency metrics mapping required for generating Supplier Scorecards.
 -- SPS Execution: Position No. 8.1
 -- DML SCRIPT: SPS Refact Incremental Refresh for dh-darkstores-live.csm_automated_tables.sps_price_index_month
 CREATE OR REPLACE TABLE `dh-darkstores-live.csm_automated_tables.sps_price_index_month`
 AS
 WITH
 date_in AS (
-  SELECT DATE('2025-10-01') AS date_in
+  SELECT param_date_start AS date_in
 ),
 date_fin AS (
-  SELECT CURRENT_DATE() AS date_fin
+  SELECT param_date_end AS date_fin
 ),
 pim AS (
     SELECT 
@@ -24,8 +30,8 @@ pim AS (
       sku AS sku_id,
       pim_product_id, 
       brand_name,
-    FROM `fulfillment-dwh-production.cl_dmart.qc_catalog_products` 
-    WHERE global_entity_id = 'PY_PE'
+    FROM `fulfillment-dwh-production.cl_dmart.qc_catalog_products`
+    WHERE REGEXP_CONTAINS(global_entity_id, param_global_entity_id)
     GROUP BY 1, 2, 3, 4, 5
   ),
   products AS (
@@ -44,8 +50,8 @@ pim AS (
       sku_id,
       CAST(supplier_id AS STRING) AS supplier_id,
       supplier_name
-    FROM `dh-darkstores-live.csm_automated_tables.sps_product` 
-    WHERE global_entity_id = 'PY_PE'
+    FROM `dh-darkstores-live.csm_automated_tables.sps_product`
+    WHERE REGEXP_CONTAINS(global_entity_id, param_global_entity_id)
     GROUP BY ALL
   ),
   principal_supplier AS (
@@ -57,7 +63,7 @@ pim AS (
       supplier_name,
       division_type
     FROM `dh-darkstores-live.csm_automated_tables.sps_product` 
-    WHERE global_entity_id = 'PY_PE'
+    WHERE global_entity_id REGEXP_CONTAINS(global_entity_id, param_global_entity_id)
     GROUP BY ALL
   ),
   competitor_benchmark_base AS (
@@ -78,7 +84,7 @@ pim AS (
       ON cb.dmart_sku = p.sku_id
       AND cb.global_entity_id = p.global_entity_id
     WHERE TRUE
-      AND cb.global_entity_id = 'PY_PE'
+      AND cb.global_entity_id REGEXP_CONTAINS(global_entity_id, param_global_entity_id)
       AND (cb.stamp_week BETWEEN (SELECT date_in FROM date_in).date_in AND (SELECT date_fin FROM date_fin).date_fin)
     GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
   )

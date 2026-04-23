@@ -1,14 +1,20 @@
--- This table extracts and maintains the efficiency metrics mapping required for generating Supplier Scorecards. 
+-- ── PARAMS ───────────────────────────────────────────────────
+DECLARE param_global_entity_id STRING DEFAULT r'TB_EG|TB_CL|TB_SG|TB_TH|TB_HU|TB_ES|TB_JO|TB_KW|TB_AR|TB_AE|TB_QA|TB_PE|TB_TR|TB_UA|TB_IT|TB_OM|TB_BH|TB_HK|TB_PH|TB_SA';
+DECLARE param_date_start       DATE   DEFAULT DATE('2025-10-01');
+DECLARE param_date_end         DATE   DEFAULT CURRENT_DATE();
+-- ─────────────────────────────────────────────────────────────
+
+-- This table extracts and maintains the efficiency metrics mapping required for generating Supplier Scorecards.
 -- SPS Execution: Position No. 7.1
 -- DML SCRIPT: SPS Refact Incremental Refresh for dh-darkstores-live.csm_automated_tables.sps_efficiency_month
 CREATE OR REPLACE TABLE `dh-darkstores-live.csm_automated_tables.sps_efficiency_month`
 AS
 WITH
 date_in AS (
-  SELECT DATE('2025-10-01') AS date_in
+  SELECT param_date_start AS date_in
 ),
 date_fin AS (
-  SELECT CURRENT_DATE() AS date_fin
+  SELECT param_date_end AS date_fin
 ),
 tmp_sp_product AS (
  SELECT
@@ -29,7 +35,7 @@ tmp_sp_product AS (
    MAX(sp.updated_at) AS last_updated,
  FROM `dh-darkstores-live.csm_automated_tables.sps_product` AS sp
  WHERE TRUE
- AND sp.global_entity_id = 'PY_PE'
+ AND REGEXP_CONTAINS(sp.global_entity_id, param_global_entity_id)
  GROUP BY 1,2,3,4,5,6,7,8,9,10,11
 ),
 ranked_global_product AS (
@@ -61,7 +67,7 @@ tmp_efficiency AS (
  FROM `fulfillment-dwh-production.cl_dmart.sku_efficiency_detail_v2` AS e
  WHERE TRUE
     AND (DATE(e.partition_month) BETWEEN (SELECT date_in FROM date_in).date_in AND (SELECT date_fin FROM date_fin).date_fin)
-    AND e.global_entity_id = 'PY_PE'
+    AND e.global_entity_id REGEXP_CONTAINS(global_entity_id, param_global_entity_id)
 )
 SELECT
   CASE
