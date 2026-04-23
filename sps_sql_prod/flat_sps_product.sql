@@ -1,3 +1,10 @@
+-- ── PARAMS ───────────────────────────────────────────────────
+DECLARE param_country_code     STRING DEFAULT r'eg|cl|sg|th|hu|es|jo|kw|ar|ae|qa|pe|tr|ua|it|om|bh|hk|ph|sa';
+DECLARE param_global_entity_id STRING DEFAULT r'TB_EG|TB_CL|TB_SG|TB_TH|TB_HU|TB_ES|TB_JO|TB_KW|TB_AR|TB_AE|TB_QA|TB_PE|TB_TR|TB_UA|TB_IT|TB_OM|TB_BH|TB_HK|TB_PH|TB_SA';
+DECLARE param_date_start       DATE   DEFAULT DATE('2025-10-01');
+DECLARE param_date_end         DATE   DEFAULT CURRENT_DATE();
+-- ─────────────────────────────────────────────────────────────
+
 -- This table extracts and maintains the supplier mapping required for generating Supplier Scorecards.
 -- SPS Execution: Position No. 2
 -- DML SCRIPT: SPS Refact Full Refresh for dh-darkstores-live.csm_automated_tables.sps_product
@@ -12,13 +19,6 @@ CLUSTER BY
  warehouse_id,
  supplier_id
 AS
-
--- ── PARAMS ───────────────────────────────────────────────────
-DECLARE param_country_code     STRING DEFAULT r'eg|cl|sg|th|hu|es|jo|kw|ar|ae|qa|pe|tr|ua|it|om|bh|hk|ph|sa';
-DECLARE param_global_entity_id STRING DEFAULT r'TB_EG|TB_CL|TB_SG|TB_TH|TB_HU|TB_ES|TB_JO|TB_KW|TB_AR|TB_AE|TB_QA|TB_PE|TB_TR|TB_UA|TB_IT|TB_OM|TB_BH|TB_HK|TB_PH|TB_SA';
-DECLARE param_date_start       DATE   DEFAULT DATE('2025-10-01');
-DECLARE param_date_end         DATE   DEFAULT CURRENT_DATE();
--- ─────────────────────────────────────────────────────────────
 
 WITH
 pim_products AS (

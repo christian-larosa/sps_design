@@ -1,3 +1,7 @@
+-- ── PARAMS ───────────────────────────────────────────────────
+DECLARE param_global_entity_id STRING DEFAULT r'TB_EG|TB_CL|TB_SG|TB_TH|TB_HU|TB_ES|TB_JO|TB_KW|TB_AR|TB_AE|TB_QA|TB_PE|TB_TR|TB_UA|TB_IT|TB_OM|TB_BH|TB_HK|TB_PH|TB_SA';
+-- ─────────────────────────────────────────────────────────────
+
 --- full refresh ---
 -- This table extracts and maintains the Division-Principal mapping required for generating Supplier Scorecards.
 -- SPS Execution: Position No. 1
@@ -7,10 +11,6 @@ CLUSTER BY
    supplier_id,
    root_id
 AS
-
--- ── PARAMS ───────────────────────────────────────────────────
-DECLARE param_global_entity_id STRING DEFAULT r'TB_EG|TB_CL|TB_SG|TB_TH|TB_HU|TB_ES|TB_JO|TB_KW|TB_AR|TB_AE|TB_QA|TB_PE|TB_TR|TB_UA|TB_IT|TB_OM|TB_BH|TB_HK|TB_PH|TB_SA';
--- ─────────────────────────────────────────────────────────────
 
 WITH RECURSIVE supplier_hierarchy AS (
    -- Anchor Member: Start with all base entities (the children).
