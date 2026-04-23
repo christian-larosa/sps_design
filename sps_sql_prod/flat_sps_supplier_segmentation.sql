@@ -136,46 +136,62 @@ scoring AS (
 
     -- ── EJE 1: IMPORTANCIA (0-100 puntos) ──────────────────────────────────
     -- Replica exacta del old SPS retail_profit_score_lc
-    ROUND(COALESCE(CASE
-      WHEN b.net_profit_lc >= p.p95_net_profit_lc THEN 100.0
-      WHEN b.net_profit_lc <= p.p15_net_profit_lc THEN 0.0
-      ELSE SAFE_DIVIDE(
-        b.net_profit_lc - p.p15_net_profit_lc,
-        p.p95_net_profit_lc - p.p15_net_profit_lc
-      ) * 100
-    END, 0), 3)                                              AS importance_score_lc,
+    -- Suppliers con gpv_flag = 'Not Applicable' reciben score 0 (modelo excluye pequeños)
+    CASE
+      WHEN b.gpv_flag = 'Not Applicable' THEN 0.0
+      ELSE ROUND(COALESCE(CASE
+        WHEN b.net_profit_lc >= p.p95_net_profit_lc THEN 100.0
+        WHEN b.net_profit_lc <= p.p15_net_profit_lc THEN 0.0
+        ELSE SAFE_DIVIDE(
+          b.net_profit_lc - p.p15_net_profit_lc,
+          p.p95_net_profit_lc - p.p15_net_profit_lc
+        ) * 100
+      END, 0), 3)
+    END                                                      AS importance_score_lc,
 
     -- ── EJE 2: PRODUCTIVIDAD — componentes ─────────────────────────────────
 
     -- ABV score (peso 50 puntos)
-    ROUND(COALESCE(CASE
-      WHEN b.abv_lc_order >= p.p95_abv_lc THEN 50.0
-      WHEN b.abv_lc_order <= p.p15_abv_lc THEN 0.0
-      ELSE SAFE_DIVIDE(
-        b.abv_lc_order - p.p15_abv_lc,
-        p.p95_abv_lc - p.p15_abv_lc
-      ) * 50
-    END, 0), 3)                                              AS abv_score_lc,
+    -- Suppliers con gpv_flag = 'Not Applicable' reciben score 0
+    CASE
+      WHEN b.gpv_flag = 'Not Applicable' THEN 0.0
+      ELSE ROUND(COALESCE(CASE
+        WHEN b.abv_lc_order >= p.p95_abv_lc THEN 50.0
+        WHEN b.abv_lc_order <= p.p15_abv_lc THEN 0.0
+        ELSE SAFE_DIVIDE(
+          b.abv_lc_order - p.p15_abv_lc,
+          p.p95_abv_lc - p.p15_abv_lc
+        ) * 50
+      END, 0), 3)
+    END                                                      AS abv_score_lc,
 
     -- Frequency score (peso 30 puntos)
-    ROUND(COALESCE(CASE
-      WHEN b.frequency >= p.p95_frequency THEN 30.0
-      WHEN b.frequency <= p.p15_frequency THEN 0.0
-      ELSE SAFE_DIVIDE(
-        b.frequency - p.p15_frequency,
-        p.p95_frequency - p.p15_frequency
-      ) * 30
-    END, 0), 3)                                              AS frequency_score,
+    -- Suppliers con gpv_flag = 'Not Applicable' reciben score 0
+    CASE
+      WHEN b.gpv_flag = 'Not Applicable' THEN 0.0
+      ELSE ROUND(COALESCE(CASE
+        WHEN b.frequency >= p.p95_frequency THEN 30.0
+        WHEN b.frequency <= p.p15_frequency THEN 0.0
+        ELSE SAFE_DIVIDE(
+          b.frequency - p.p15_frequency,
+          p.p95_frequency - p.p15_frequency
+        ) * 30
+      END, 0), 3)
+    END                                                      AS frequency_score,
 
     -- Customer penetration score (peso 20 puntos)
-    ROUND(COALESCE(CASE
-      WHEN b.customer_penetration >= p.p95_customer_penetration THEN 20.0
-      WHEN b.customer_penetration <= p.p15_customer_penetration THEN 0.0
-      ELSE SAFE_DIVIDE(
-        b.customer_penetration - p.p15_customer_penetration,
-        p.p95_customer_penetration - p.p15_customer_penetration
-      ) * 20
-    END, 0), 3)                                              AS customer_penetration_score
+    -- Suppliers con gpv_flag = 'Not Applicable' reciben score 0
+    CASE
+      WHEN b.gpv_flag = 'Not Applicable' THEN 0.0
+      ELSE ROUND(COALESCE(CASE
+        WHEN b.customer_penetration >= p.p95_customer_penetration THEN 20.0
+        WHEN b.customer_penetration <= p.p15_customer_penetration THEN 0.0
+        ELSE SAFE_DIVIDE(
+          b.customer_penetration - p.p15_customer_penetration,
+          p.p95_customer_penetration - p.p15_customer_penetration
+        ) * 20
+      END, 0), 3)
+    END                                                      AS customer_penetration_score
 
   FROM base b
   LEFT JOIN percentiles p
