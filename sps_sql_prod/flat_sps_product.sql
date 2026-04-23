@@ -785,7 +785,7 @@ joined_data AS (
     LEFT JOIN sources AS s
     ON ssw.global_entity_id = s.global_entity_id
     WHERE TRUE
-    AND ssw.global_entity_id = 'PY_PE'
+    AND REGEXP_CONTAINS(ssw.global_entity_id, param_global_entity_id)
     QUALIFY ROW_NUMBER() OVER(
         PARTITION BY ssw.global_entity_id, ssw.warehouse_id, ssw.sku_id 
         ORDER BY ssw.updated_at DESC
