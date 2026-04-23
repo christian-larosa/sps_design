@@ -99,7 +99,9 @@ SELECT o.*,
  po.total_po_orders,
  po.total_compliant_po_orders,
  po.total_received_qty_ALL,
- po.total_demanded_qty_ALL
+ po.total_demanded_qty_ALL,
+ mc.total_market_customers,
+ mc.total_market_orders
 FROM all_keys AS o
 LEFT JOIN `dh-darkstores-live.csm_automated_tables.sps_price_index` AS p
   ON o.global_entity_id = p.global_entity_id AND o.time_period = p.time_period AND o.time_granularity = p.time_granularity AND o.division_type = p.division_type AND o.supplier_level = p.supplier_level AND o.entity_key = p.entity_key AND o.brand_sup = p.brand_sup
@@ -119,4 +121,6 @@ LEFT JOIN `dh-darkstores-live.csm_automated_tables.sps_delivery_costs` AS deliv
   ON o.global_entity_id = deliv.global_entity_id AND o.time_period = deliv.time_period AND o.time_granularity = deliv.time_granularity AND o.division_type = deliv.division_type AND o.supplier_level = deliv.supplier_level AND o.entity_key = deliv.entity_key AND o.brand_sup = deliv.brand_sup
 LEFT JOIN `dh-darkstores-live.csm_automated_tables.sps_purchase_order` AS po
   ON o.global_entity_id = po.global_entity_id AND o.time_period = po.time_period AND o.time_granularity = po.time_granularity AND o.division_type = po.division_type AND o.supplier_level = po.supplier_level AND o.entity_key = po.entity_key AND o.brand_sup = po.brand_sup
+LEFT JOIN `dh-darkstores-live.csm_automated_tables.sps_market_customers` AS mc
+  ON o.global_entity_id = mc.global_entity_id AND o.time_period = mc.time_period AND o.time_granularity = mc.time_granularity
 ;

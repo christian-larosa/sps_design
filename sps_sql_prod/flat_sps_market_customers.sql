@@ -1,0 +1,71 @@
+-- ============================================================
+-- SPS DEBUG | PY_PE | 14a sps_market_customers
+-- Pos: 14a | Corre antes de sps_score_tableau
+-- Propósito: denominador para customer_penetration en segmentación
+-- Grain: global_entity_id × time_period × time_granularity
+-- Monthly:  clientes únicos en el mes (sin filtro de supplier)
+-- Quarterly: clientes únicos en el trimestre (sin filtro de supplier)
+-- Nota: quarterly NO es suma de meses — es COUNT DISTINCT sobre el periodo completo
+-- Un cliente que compró en oct+nov+dic = 1 cliente en Q4, no 3
+-- ============================================================
+
+CREATE OR REPLACE TABLE `dh-darkstores-live.csm_automated_tables.sps_market_customers`
+AS
+
+WITH
+date_in AS (
+  SELECT DATE('2025-10-01') AS date_in
+),
+date_fin AS (
+  SELECT CURRENT_DATE() AS date_fin
+),
+
+-- Base: todas las órdenes del periodo, sin filtro de supplier
+-- Grain: order_id × analytical_customer_id × fecha
+base AS (
+  SELECT
+    global_entity_id,
+    analytical_customer_id,
+    order_id,
+    CAST(DATE_TRUNC(order_date, MONTH) AS STRING) AS month,
+    CAST(CONCAT(
+      'Q', EXTRACT(QUARTER FROM order_date),
+      '-', EXTRACT(YEAR FROM order_date)
+    ) AS STRING) AS quarter_year
+  FROM `dh-darkstores-live.csm_automated_tables.sps_customer_order`
+  WHERE country_code = 'pe'
+    AND (order_date BETWEEN (SELECT date_in FROM date_in).date_in
+                        AND (SELECT date_fin FROM date_fin).date_fin)
+  -- Sin GROUP BY de supplier — queremos todos los clientes de la plataforma
+  -- independientemente de qué supplier compraron
+),
+
+-- Monthly: una fila por entidad × mes
+monthly AS (
+  SELECT
+    global_entity_id,
+    month                                         AS time_period,
+    'Monthly'                                     AS time_granularity,
+    COUNT(DISTINCT analytical_customer_id)        AS total_market_customers,
+    COUNT(DISTINCT order_id)                      AS total_market_orders
+  FROM base
+  GROUP BY global_entity_id, month
+),
+
+-- Quarterly: una fila por entidad × trimestre
+-- COUNT DISTINCT sobre todo el quarter — no suma de meses
+-- Semánticamente correcto: un cliente que compró en 3 meses del quarter = 1 cliente
+quarterly AS (
+  SELECT
+    global_entity_id,
+    quarter_year                                  AS time_period,
+    'Quarterly'                                   AS time_granularity,
+    COUNT(DISTINCT analytical_customer_id)        AS total_market_customers,
+    COUNT(DISTINCT order_id)                      AS total_market_orders
+  FROM base
+  GROUP BY global_entity_id, quarter_year
+)
+
+SELECT * FROM monthly
+UNION ALL
+SELECT * FROM quarterly
