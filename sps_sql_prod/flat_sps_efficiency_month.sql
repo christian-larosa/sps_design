@@ -58,7 +58,7 @@ tmp_efficiency AS (
    e.gpv_eur,
    STRING(e.month) AS month,
    CAST(CONCAT('Q', EXTRACT(QUARTER FROM e.month), '-', EXTRACT(YEAR FROM e.month)) AS STRING) AS quarter_year,
- FROM `fulfillment-dwh-production.rl_dmart.sku_efficiency_detail_v2` AS e
+ FROM `fulfillment-dwh-production.cl_dmart.sku_efficiency_detail_v2` AS e
  WHERE TRUE
     AND (DATE(e.partition_month) BETWEEN (SELECT date_in FROM date_in).date_in AND (SELECT date_fin FROM date_fin).date_fin)
     AND e.global_entity_id = 'PY_PE'
