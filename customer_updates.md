@@ -121,32 +121,44 @@ Enables Tableau to calculate:
 
 ---
 
-## 4. flat_sps_supplier_segmentation.sql — Architecture Refactor ✅
+## 4. flat_sps_supplier_segmentation.sql — Architecture & Weights Refactor ✅
 
-**Status:** Updated (Self-Contained)
+**Status:** Updated (Self-Contained + Rebalanced Weights)
 
-### Problem
-The segmentation table required external JOINs to sps_score_tableau to access essential financial and customer metrics (total_customers, total_orders, Net_Sales_eur, Net_Sales_lc), defeating the purpose of having a dedicated segmentation table.
+### Part A: Self-Contained Architecture
+The segmentation table now includes all context fields for analysis without external JOINs:
+- `total_customers`, `total_orders`, `total_market_customers`
+- `Net_Sales_eur`, `Net_Sales_lc`
 
-### Solution
-Added five context fields to the segmentation table's SELECT list:
-- `total_customers` — Unique supplier customers per period
-- `total_orders` — Total orders placed from supplier per period
-- `total_market_customers` — Platform-wide customer count (for penetration denominator)
-- `Net_Sales_eur` — Gross sales in EUR
-- `Net_Sales_lc` — Gross sales in local currency
+### Part B: Productivity Weight Rebalancing
+**Previous weights (problematic):**
+- ABV (basket value) = 50 puntos (50%)
+- Frequency (order frequency) = 30 puntos (30%)
+- Customer Penetration = 20 puntos (20%)
 
-### Changes
-**Propagated through all CTEs:**
-1. **base** (lines 68-74): Added five fields to SELECT
-2. **percentiles** (lines 125-131): Pass through in SELECT
-3. **scoring** (lines 187-192): Pass through as `b.field_name`
-4. **final** (lines 242-247): Include in final SELECT output
+**Problem:** ABV-dominant scoring allowed ultra-specialists (0.1% market reach, massive basket) to qualify as Niche/Key Accounts.
+- Example: Supplier 357 (penetration=0.11%, 95 customers, ABV=136.55 LC) → Niche
+- Supplier 54 (penetration=0.62%, ABV=50) → Key Accounts despite near-zero market reach
+
+**New weights (balanced):**
+- ABV (basket value) = 30 puntos (30%) — ↓ from 50
+- Frequency (order frequency) = 30 puntos (30%) — unchanged
+- Customer Penetration = 40 puntos (40%) — ↑ from 20
+
+**Rationale:** Penetration (actual market reach) is the PRIMARY signal. Basket value alone cannot compensate for lack of market reach.
+
+### Results
+- Niche collapses: 27 → 2 suppliers (correct; high bar now)
+- Key Accounts more exclusive with REAL penetration: 8.59% → 11.03% avg
+- Specialist suppliers move to appropriate segments
+  - Supplier 357 (0.11% penetration): Niche → Long Tail ✓
+  - Supplier 54 (0.62% penetration): Key Accounts → Standard ✓
+  - Supplier 51/Backus (15.16% penetration): Key Accounts → Key Accounts, higher score ✓
 
 ### Impact
-- Segmentation table is now **self-contained** — no external JOIN required
-- Analysts can analyze segment composition with financial context directly
-- Enables direct Tableau dashboard from sps_supplier_segmentation (no denormalization step)
+- More market-realistic segmentation
+- Penetration-driven supplier strategy
+- Eliminates false Key Accounts due to ABV gaming
 
 ---
 
