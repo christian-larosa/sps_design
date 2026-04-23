@@ -6,8 +6,40 @@ CREATE OR REPLACE TABLE `dh-darkstores-live.csm_automated_tables.sps_financial_m
 CLUSTER BY
    global_entity_id,
    time_period
-AS 
-WITH current_year_data AS (
+AS
+WITH
+-- ── FIX: deduplicar basket value antes del grouping sets ─────────────────────
+-- amt_total_price_paid_net y amt_gbv son valores order-level copiados en cada
+-- fila SKU de sps_financial_metrics_month. MAX() por order+supplier+dimensiones
+-- elimina el fan-out antes de que SUM() los agregue en el grouping sets.
+-- Sin este fix: Total_Net_Sales_lc_order = basket × n_skus_del_supplier_en_orden.
+-- Discovery PY_PE Nov-2025: inflation_factor = 2.3x en 9,496 órdenes confirmado.
+-- Patrón equivalente al CTE order_level_gpv del old SPS (_srm_supplier_scorecard).
+deduped_basket AS (
+  SELECT
+    global_entity_id,
+    order_id,
+    supplier_id,
+    principal_supplier_id,
+    brand_name,
+    brand_owner_name,
+    l1_master_category,
+    l2_master_category,
+    l3_master_category,
+    month,
+    quarter_year,
+    MAX(amt_total_price_paid_net_eur) AS amt_total_price_paid_net_eur,
+    MAX(amt_total_price_paid_net_lc)  AS amt_total_price_paid_net_lc,
+    MAX(amt_gbv_eur)                  AS amt_gbv_eur
+  FROM `dh-darkstores-live.csm_automated_tables.sps_financial_metrics_month`
+  WHERE DATE(month) >= DATE_SUB(DATE_TRUNC(CURRENT_DATE(), QUARTER), INTERVAL 4 QUARTER)
+  GROUP BY
+    global_entity_id, order_id, supplier_id, principal_supplier_id,
+    brand_name, brand_owner_name,
+    l1_master_category, l2_master_category, l3_master_category,
+    month, quarter_year
+),
+current_year_data AS (
   SELECT
     global_entity_id,
     CASE WHEN GROUPING(month) = 0 THEN CAST(month AS STRING) ELSE quarter_year END AS time_period,
@@ -47,8 +79,8 @@ WITH current_year_data AS (
     COUNT(DISTINCT order_id) AS total_orders,
     COUNT(DISTINCT warehouse_id) AS total_warehouses_sold,
     ------------ EUR ----------------------------------------
-    CAST(ROUND(IFNULL(SUM(amt_total_price_paid_net_eur),0), 2) AS NUMERIC) AS Total_Net_Sales_eur_order,
-    CAST(ROUND(IFNULL(SUM(total_price_paid_net_eur),0), 2) AS NUMERIC) AS Net_Sales_eur,
+    CAST(ROUND(IFNULL(SUM(db.amt_total_price_paid_net_eur),0), 2) AS NUMERIC) AS Total_Net_Sales_eur_order,
+    CAST(ROUND(IFNULL(SUM(os.total_price_paid_net_eur),0), 2) AS NUMERIC) AS Net_Sales_eur,
     CAST(ROUND(IFNULL(SUM(COGS_eur),0),4) AS NUMERIC) AS COGS_eur,
     CAST(ROUND(IFNULL(SUM(CASE WHEN unit_discount_amount_eur > 0 THEN total_price_paid_net_eur END),0),2) AS NUMERIC) AS Net_Sales_from_promo_eur,
     CAST(ROUND(IFNULL(SUM(total_supplier_funding_eur),0),2) AS NUMERIC) AS total_supplier_funding_eur,
@@ -56,8 +88,8 @@ WITH current_year_data AS (
     CAST(ROUND(IFNULL(SUM(total_discount_eur),0),4) AS NUMERIC) AS total_discount_eur,
     CAST(ROUND(IFNULL(SAFE_DIVIDE(ROUND(IFNULL(SUM(CASE WHEN unit_discount_amount_eur > 0 THEN total_price_paid_net_eur END),0),2), ROUND(IFNULL(SUM(total_price_paid_net_eur),0), 2)), 0), 4) AS NUMERIC) AS Promo_GPV_contribution_eur,
     ------------ LC ----------------------------------------
-    CAST(ROUND(IFNULL(SUM(amt_total_price_paid_net_lc),0), 2) AS NUMERIC) AS Total_Net_Sales_lc_order,
-    CAST(ROUND(IFNULL(SUM(total_price_paid_net_lc),0), 2) AS NUMERIC) AS Net_Sales_lc,
+    CAST(ROUND(IFNULL(SUM(db.amt_total_price_paid_net_lc),0), 2) AS NUMERIC) AS Total_Net_Sales_lc_order,
+    CAST(ROUND(IFNULL(SUM(os.total_price_paid_net_lc),0), 2) AS NUMERIC) AS Net_Sales_lc,
     CAST(ROUND(IFNULL(SUM(COGS_lc),0), 4) AS NUMERIC) AS COGS_lc,
     CAST(ROUND(IFNULL(SUM(CASE WHEN unit_discount_amount_lc > 0 THEN total_price_paid_net_lc END),0),2) AS NUMERIC) AS Net_Sales_from_promo_lc,
     CAST(ROUND(IFNULL(SUM(total_supplier_funding_lc),0),2) AS NUMERIC) AS total_supplier_funding_lc,
@@ -65,11 +97,16 @@ WITH current_year_data AS (
     CAST(ROUND(IFNULL(SUM(total_discount_lc),0), 4) AS NUMERIC) AS total_discount_lc,
     CAST(ROUND(IFNULL(SAFE_DIVIDE(ROUND(IFNULL(SUM(CASE WHEN unit_discount_amount_lc > 0 THEN total_price_paid_net_lc END),0),2), ROUND(IFNULL(SUM(total_price_paid_net_lc),0), 2)), 0), 4) AS NUMERIC) AS Promo_GPV_contribution_lc,
     ------- Other aggregated metrics ---------------
-    CAST(ROUND(SUM (amt_gbv_eur),2) AS NUMERIC) AS total_GBV,
-    CAST(ROUND(SUM (fulfilled_quantity),2) AS NUMERIC) AS fulfilled_quantity
-  FROM `dh-darkstores-live.csm_automated_tables.sps_financial_metrics_month`
+    CAST(ROUND(SUM (db.amt_gbv_eur),2) AS NUMERIC) AS total_GBV,
+    CAST(ROUND(SUM (os.fulfilled_quantity),2) AS NUMERIC) AS fulfilled_quantity
+  FROM `dh-darkstores-live.csm_automated_tables.sps_financial_metrics_month` AS os
+  LEFT JOIN deduped_basket AS db
+    ON  os.order_id             = db.order_id
+    AND os.global_entity_id     = db.global_entity_id
+    AND os.supplier_id          = db.supplier_id
+    AND os.month                = db.month
   -- Pull data for the last 4 quarters (1 year)
-  WHERE DATE(month) >= DATE_SUB(DATE_TRUNC(CURRENT_DATE(), QUARTER), INTERVAL 4 QUARTER)
+  WHERE DATE(os.month) >= DATE_SUB(DATE_TRUNC(CURRENT_DATE(), QUARTER), INTERVAL 4 QUARTER)
 GROUP BY GROUPING SETS (
     -- ==========================================================
     -- MONTHLY BREAKDOWNS (month)
