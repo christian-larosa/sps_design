@@ -1,6 +1,6 @@
 -- ── PARAMS ───────────────────────────────────────────────────
 DECLARE param_month            STRING DEFAULT '2026-04-01';
-DECLARE param_country_code     STRING DEFAULT r'eg|cl|sg|th|hu|es|jo|kw|ar|ae|qa|pe|tr|ua|it|om|bh|hk|ph|sa';
+DECLARE param_country_code     STRING DEFAULT r'hk|ph|sg|es|it|ua|eg|sa|ae|hu|ar|cl|pe|bh|jo|kw|om|qa|tr';
 DECLARE param_global_entity_id STRING DEFAULT r'FP_HK|FP_PH|FP_SG|GV_ES|GV_IT|GV_UA|HF_EG|HS_SA|TB_AE|NP_HU|PY_AR|PY_CL|PY_PE|TB_BH|TB_JO|TB_KW|TB_OM|TB_QA|YS_TR';
 DECLARE param_date_start       DATE   DEFAULT DATE('2025-10-01');
 DECLARE param_date_end         DATE   DEFAULT CURRENT_DATE();
@@ -139,6 +139,7 @@ tmp_orders AS (
   WHERE DATE(o.order_created_date_lt) BETWEEN param_date_start AND param_date_end
     AND o.is_dmart IS TRUE
     AND o.is_successful IS TRUE
+    AND REGEXP_CONTAINS(o.global_entity_id, param_global_entity_id)
     AND REGEXP_CONTAINS(o.country_code, param_country_code)
 )
 
