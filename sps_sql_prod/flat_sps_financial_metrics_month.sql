@@ -63,5 +63,5 @@ date_fin AS (
     END AS partition_month,
   FROM `dh-darkstores-live.csm_automated_tables.sps_customer_order` AS os
   WHERE TRUE
-    AND os.country_code = 'pe'
+    AND REGEXP_CONTAINS(os.country_code, param_country_code)
     AND (os.order_date BETWEEN (SELECT date_in FROM date_in).date_in AND (SELECT date_fin FROM date_fin).date_fin)

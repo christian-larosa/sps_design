@@ -32,7 +32,7 @@ sps_product AS (
       COALESCE(sp.level_three, '_unknown_') AS l3_master_category,
     FROM `dh-darkstores-live.csm_automated_tables.sps_product` AS sp
     WHERE TRUE
-      AND sp.country_code = 'pe'
+      AND REGEXP_CONTAINS(sp.country_code, param_country_code)
     GROUP BY ALL
   ),
   sps_line_rebate AS (
@@ -54,7 +54,7 @@ sps_product AS (
     WHERE TRUE
       AND lr.trading_term_type NOT IN ('Frontmargin')
       AND (DATE_TRUNC(DATE(lr.month), MONTH) BETWEEN (SELECT date_in FROM date_in).date_in AND (SELECT date_fin FROM date_fin).date_fin)
-      AND lr.country_code = 'pe'
+      AND REGEXP_CONTAINS(lr.country_code, param_country_code)
     GROUP BY 1, 2, 3, 4, 5, 6
   )
     SELECT

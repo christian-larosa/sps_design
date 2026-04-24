@@ -31,7 +31,7 @@ tmp_sp_product AS (
     ANY_VALUE(sp.sup_id_parent) AS principal_supplier_id,
   FROM `dh-darkstores-live.csm_automated_tables.sps_product` AS sp
   WHERE TRUE
-    AND sp.country_code = 'pe'
+    AND REGEXP_CONTAINS(sp.country_code, param_country_code)
   GROUP BY 1,2,3,4,5,6,7,8,9
 ),
 tmp_supplier_performance_agg AS (
@@ -62,7 +62,7 @@ tmp_supplier_performance_agg AS (
     SUM(spr.total_demanded_qty_per_order) AS total_demanded_qty_per_order,
   FROM `fulfillment-dwh-production.rl_dmart.supplier_performance_report` AS spr
   WHERE TRUE
-    AND spr.country_code = 'pe'
+    AND REGEXP_CONTAINS(spr.country_code, param_country_code)
     AND (spr.create_date BETWEEN (SELECT date_in FROM date_in).date_in AND (SELECT date_fin FROM date_fin).date_fin)
   GROUP BY ALL
 )

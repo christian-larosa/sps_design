@@ -55,7 +55,7 @@ scm_dc_centralization AS (
     SUM(sdc.inbounded_quantity) AS total_inbounded_quantity
   FROM `fulfillment-dwh-production.cl_dmart.scm_dc_centralization` AS sdc
   WHERE TRUE
-    AND sdc.country_code = 'pe'
+    AND REGEXP_CONTAINS(sdc.country_code, param_country_code)
     AND sdc.inbound_type = 'DC to Dmart'
     AND (DATE_TRUNC(sdc.inbound_date, MONTH) BETWEEN (SELECT date_in FROM date_in).date_in AND (SELECT date_fin FROM date_fin).date_fin)
   GROUP BY 1, 2, 3, 4, 5, 6

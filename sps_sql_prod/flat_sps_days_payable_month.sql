@@ -87,7 +87,7 @@ pim AS (
           ELSE NULL
       END AS payment_days,
     FROM `fulfillment-dwh-production.curated_data_shared_salesforce_srm.account` AS a
-    WHERE a.country_code = 'pe'
+    WHERE REGEXP_CONTAINS(a.country_code, param_country_code)
       AND a.bank_payment_term__c IS NOT NULL
     GROUP BY 1, 2, 3
   ),
@@ -107,7 +107,7 @@ pim AS (
       SUM(sd.month_end_stock_value_eur) sku_month_end_stock_value_eur,
       SUM(sd.cogs_eur_monthy) AS sku_cogs_eur_monthy,
     FROM `fulfillment-dwh-production.cl_dmart.stock_days_on_hand` AS sd
-    WHERE sd.global_entity_id REGEXP_CONTAINS(global_entity_id, param_global_entity_id)
+    WHERE REGEXP_CONTAINS(sd.global_entity_id, param_global_entity_id)
       AND (sd.month BETWEEN (SELECT date_in FROM date_in).date_in AND (SELECT date_fin FROM date_fin).date_fin)
     GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
   )
