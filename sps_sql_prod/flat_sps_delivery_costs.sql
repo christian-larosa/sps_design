@@ -2,7 +2,7 @@
 -- SPS Execution: Position No. 12.2
 
 -- ── PARAMS ───────────────────────────────────────────────────
-DECLARE param_global_entity_id STRING DEFAULT r'TB_EG|TB_CL|TB_SG|TB_TH|TB_HU|TB_ES|TB_JO|TB_KW|TB_AR|TB_AE|TB_QA|TB_PE|TB_TR|TB_UA|TB_IT|TB_OM|TB_BH|TB_HK|TB_PH|TB_SA';
+DECLARE param_global_entity_id STRING DEFAULT r'FP_HK|FP_PH|FP_SG|GV_ES|GV_IT|GV_UA|HF_EG|HS_SA|IN_AE|IN_EG|NP_HU|PY_AR|PY_CL|PY_PE|TB_AE|TB_BH|TB_JO|TB_KW|TB_OM|TB_QA|YS_TR';
 DECLARE param_date_start       DATE   DEFAULT DATE('2025-10-01');
 DECLARE param_date_end         DATE   DEFAULT CURRENT_DATE();
 -- ─────────────────────────────────────────────────────────────

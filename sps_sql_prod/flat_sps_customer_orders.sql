@@ -1,7 +1,7 @@
 -- ── PARAMS ───────────────────────────────────────────────────
 DECLARE param_month            STRING DEFAULT '2026-04-01';
 DECLARE param_country_code     STRING DEFAULT r'eg|cl|sg|th|hu|es|jo|kw|ar|ae|qa|pe|tr|ua|it|om|bh|hk|ph|sa';
-DECLARE param_global_entity_id STRING DEFAULT r'TB_EG|TB_CL|TB_SG|TB_TH|TB_HU|TB_ES|TB_JO|TB_KW|TB_AR|TB_AE|TB_QA|TB_PE|TB_TR|TB_UA|TB_IT|TB_OM|TB_BH|TB_HK|TB_PH|TB_SA';
+DECLARE param_global_entity_id STRING DEFAULT r'FP_HK|FP_PH|FP_SG|GV_ES|GV_IT|GV_UA|HF_EG|HS_SA|IN_AE|IN_EG|NP_HU|PY_AR|PY_CL|PY_PE|TB_AE|TB_BH|TB_JO|TB_KW|TB_OM|TB_QA|YS_TR';
 DECLARE param_date_start       DATE   DEFAULT DATE('2025-10-01');
 DECLARE param_date_end         DATE   DEFAULT CURRENT_DATE();
 -- ─────────────────────────────────────────────────────────────
@@ -235,7 +235,7 @@ SELECT
   -- 8. Partitioning
   DATE_TRUNC(te_o.order_date, MONTH) AS partition_month
 FROM tmp_orders AS te_o
-INNER JOIN tmp_sp_product AS sp_exact
+LEFT JOIN tmp_sp_product AS sp_exact
   ON te_o.sku_id = sp_exact.sku_id
   AND te_o.global_entity_id = sp_exact.global_entity_id
   AND te_o.warehouse_id = sp_exact.warehouse_id
