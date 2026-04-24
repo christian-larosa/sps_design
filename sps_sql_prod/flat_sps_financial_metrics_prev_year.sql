@@ -5,14 +5,14 @@
 -- ── PARAMS ───────────────────────────────────────────────────
 DECLARE param_global_entity_id STRING DEFAULT r'FP_HK|FP_PH|FP_SG|GV_ES|GV_IT|GV_UA|HF_EG|HS_SA|IN_AE|IN_EG|NP_HU|PY_AR|PY_CL|PY_PE|TB_AE|TB_BH|TB_JO|TB_KW|TB_OM|TB_QA|YS_TR';
 DECLARE param_date_start       DATE   DEFAULT DATE('2025-10-01');
-DECLARE param_date_end         DATE   DEFAULT CURRENT_DATE();
+DECLARE param_date_end         DATE   DEFAULT DATE('2026-04-30');
 -- ─────────────────────────────────────────────────────────────
 
 CREATE OR REPLACE TABLE `dh-darkstores-live.csm_automated_tables.sps_financial_metrics_prev_year`
 CLUSTER BY
-   global_entity_id, 
+   global_entity_id,
    join_time_period
-AS 
+AS
   SELECT
     global_entity_id,
     -- We shift the time_period FORWARD by 1 year so it matches the Current Year's keys during the JOIN
@@ -60,9 +60,9 @@ AS
     CAST(ROUND(IFNULL(SUM(total_price_paid_net_eur) - SUM(COGS_eur),0), 2) AS NUMERIC) AS front_margin_amt_eur_LY,
     CAST(ROUND(IFNULL(SUM(total_price_paid_net_lc) - SUM(COGS_lc),0), 2) AS NUMERIC) AS front_margin_amt_lc_LY
   FROM `dh-darkstores-live.csm_automated_tables.sps_financial_metrics_month`
-  -- Pull data from 2 years ago up to 1 year ago
-  WHERE DATE(month) >= DATE_SUB(DATE_TRUNC(CURRENT_DATE(), QUARTER), INTERVAL 8 QUARTER)
-    AND DATE(month) < DATE_SUB(DATE_TRUNC(CURRENT_DATE(), QUARTER), INTERVAL 4 QUARTER)
+  -- Pull data from param_date_start/end minus 1 year (previous year's same period)
+  WHERE DATE(month) >= DATE_SUB(param_date_start, INTERVAL 1 YEAR)
+    AND DATE(month) <= DATE_SUB(param_date_end, INTERVAL 1 YEAR)
 GROUP BY GROUPING SETS (
     -- ==========================================================
     -- MONTHLY BREAKDOWNS (month)

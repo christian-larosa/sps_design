@@ -36,7 +36,7 @@ tmp_sp_product AS (
     sp.region_code,
     MAX(sp.updated_at) AS last_updated
   FROM `dh-darkstores-live.csm_automated_tables.sps_product` AS sp
-  WHERE REGEXP_CONTAINS(sp.global_entity_id, param_global_entity_id)
+  WHERE sp.global_entity_id IN ('FP_HK', 'FP_PH', 'FP_SG', 'GV_ES', 'GV_IT', 'GV_UA', 'HF_EG', 'HS_SA', 'IN_AE', 'IN_EG', 'NP_HU', 'PY_AR', 'PY_CL', 'PY_PE', 'TB_AE', 'TB_BH', 'TB_JO', 'TB_KW', 'TB_OM', 'TB_QA', 'YS_TR')
   GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17
 ),
 ranked_global_product AS (
@@ -139,8 +139,7 @@ tmp_orders AS (
   WHERE DATE(o.order_created_date_lt) BETWEEN param_date_start AND param_date_end
     AND o.is_dmart IS TRUE
     AND o.is_successful IS TRUE
-    AND REGEXP_CONTAINS(o.global_entity_id, param_global_entity_id)
-    AND REGEXP_CONTAINS(o.country_code, param_country_code)
+    AND o.global_entity_id IN ('FP_HK', 'FP_PH', 'FP_SG', 'GV_ES', 'GV_IT', 'GV_UA', 'HF_EG', 'HS_SA', 'IN_AE', 'IN_EG', 'NP_HU', 'PY_AR', 'PY_CL', 'PY_PE', 'TB_AE', 'TB_BH', 'TB_JO', 'TB_KW', 'TB_OM', 'TB_QA', 'YS_TR')
 )
 
 SELECT

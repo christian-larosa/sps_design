@@ -9,6 +9,8 @@ DECLARE param_date_end         DATE   DEFAULT CURRENT_DATE();
 -- SPS Execution: Position No. 5.1
 -- DML SCRIPT: SPS Refact Incremental Refresh for dh-darkstores-live.csm_automated_tables.sps_financial_metrics_month
 CREATE OR REPLACE TABLE `dh-darkstores-live.csm_automated_tables.sps_financial_metrics_month`
+PARTITION BY order_date
+CLUSTER BY global_entity_id
 AS
 WITH
 date_in AS (
@@ -64,5 +66,6 @@ date_fin AS (
     END AS partition_month,
   FROM `dh-darkstores-live.csm_automated_tables.sps_customer_order` AS os
   WHERE TRUE
+    AND REGEXP_CONTAINS(os.global_entity_id, param_global_entity_id)
     AND REGEXP_CONTAINS(os.country_code, param_country_code)
     AND (os.order_date BETWEEN (SELECT date_in FROM date_in).date_in AND (SELECT date_fin FROM date_fin).date_fin)

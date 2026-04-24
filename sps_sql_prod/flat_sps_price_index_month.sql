@@ -18,10 +18,10 @@ date_fin AS (
   SELECT param_date_end AS date_fin
 ),
 pim AS (
-    SELECT 
-      product_id, 
-      brand_owner_name, 
-    FROM `fulfillment-dwh-production.cl_dmart.pim_product` 
+    SELECT
+      product_id,
+      brand_owner_name
+    FROM `fulfillment-dwh-production.cl_dmart.pim_product`
     GROUP BY 1, 2
   ), 
   qc AS (
@@ -64,8 +64,8 @@ pim AS (
       ANY_VALUE(sup_id_parent) AS principal_supplier_id,
       supplier_name,
       division_type
-    FROM `dh-darkstores-live.csm_automated_tables.sps_product` 
-    WHERE global_entity_id REGEXP_CONTAINS(global_entity_id, param_global_entity_id)
+    FROM `dh-darkstores-live.csm_automated_tables.sps_product`
+    WHERE REGEXP_CONTAINS(global_entity_id, param_global_entity_id)
     GROUP BY ALL
   ),
   competitor_benchmark_base AS (
@@ -80,7 +80,7 @@ pim AS (
       cb.median_bp_index,
       cb.sku_gpv_eur,
       p.brand_owner_name,
-      p.brand_name,
+      p.brand_name
     FROM `fulfillment-dwh-production.rl_dmart.competitor_benchmark_indices` AS cb
     LEFT JOIN products AS p
       ON cb.dmart_sku = p.sku_id
@@ -107,7 +107,7 @@ pim AS (
         WHEN DATE_TRUNC(CAST(cbb.price_index_month AS DATE), MONTH) = DATE_TRUNC(CURRENT_DATE(), MONTH)
         THEN CURRENT_DATE()
           ELSE LAST_DAY(CAST(cbb.price_index_month AS DATE))
-      END AS partition_month,
+      END AS partition_month
     FROM competitor_benchmark_base AS cbb
     LEFT JOIN sku_supplier_mapping_for_price_index AS ssm
       ON cbb.sku = ssm.sku_id
