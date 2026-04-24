@@ -4,7 +4,7 @@ DECLARE param_date_start       DATE   DEFAULT DATE('2025-10-01');
 DECLARE param_date_end         DATE   DEFAULT CURRENT_DATE();
 -- ─────────────────────────────────────────────────────────────
 
--- This table extracts and maintains the efficiency metrics mapping required for generating Supplier Scorecards.
+-- This table extracts and maintains the price index metrics mapping required for generating Supplier Scorecards.
 -- SPS Execution: Position No. 8.1
 -- DML SCRIPT: SPS Refact Incremental Refresh for dh-darkstores-live.csm_automated_tables.sps_price_index_month
 CREATE OR REPLACE TABLE `dh-darkstores-live.csm_automated_tables.sps_price_index_month`

@@ -6,14 +6,9 @@ DECLARE param_date_start       DATE   DEFAULT DATE('2025-10-01');
 DECLARE param_date_end         DATE   DEFAULT CURRENT_DATE();
 -- ─────────────────────────────────────────────────────────────
 
--- ============================================================
--- SPS DEBUG | PY_PE | 03b_sps_customer_order
--- Pos: 3 | Full range en vez de incremental
--- Fuentes internas: csm_dev_automated_tables.sps_product
--- Fuentes externas: cl_dmart.qc_orders (fuente cruda — NO sps_customer_order)
--- Rango: 2025-10-01 → CURRENT_DATE()
--- Destino: dh-darkstores-live.csm_dev_automated_tables
--- ============================================================
+-- This table extracts and maintains customer orders mapping required for generating Supplier Scorecards.
+-- SPS Execution: Position No. 3
+-- Full range (no incremental): 2025-10-01 → CURRENT_DATE()
 
 CREATE OR REPLACE TABLE `dh-darkstores-live.csm_dev_automated_tables.sps_customer_order`
 AS

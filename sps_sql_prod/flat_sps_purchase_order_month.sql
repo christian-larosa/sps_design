@@ -1,6 +1,5 @@
--- ============================================================
--- SPS DEBUG | MULTIPLE | 6.1 sps_purchase_order_month
--- ============================================================
+-- This table extracts and maintains purchase order metrics mapping required for generating Supplier Scorecards.
+-- SPS Execution: Position No. 6.1
 -- Hardcoded para debug: país=PE, lookback de 4 trimestres
 
 CREATE OR REPLACE TABLE `dh-darkstores-live.csm_automated_tables.sps_purchase_order_month`

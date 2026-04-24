@@ -1,5 +1,5 @@
--- ============================================================
--- SPS DEBUG | PY_PE | 10b sps_days_payable
+-- This table aggregates days payable metrics for generating Supplier Scorecards.
+-- SPS Execution: Position No. 9.2
 -- Ingredientes añadidos:
 --   SUM(sku_month_end_stock_value_eur) AS stock_value_eur
 --   SUM(sku_cogs_eur_monthy)           AS cogs_monthly_eur

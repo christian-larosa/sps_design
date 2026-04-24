@@ -1,6 +1,5 @@
--- ============================================================
--- SPS DEBUG | PY_PE | 12b sps_delivery_costs
--- ============================================================
+-- This table aggregates delivery costs metrics for generating Supplier Scorecards.
+-- SPS Execution: Position No. 12.2
 
 CREATE OR REPLACE TABLE `dh-darkstores-live.csm_automated_tables.sps_delivery_costs`
 CLUSTER BY

@@ -1,5 +1,5 @@
--- ============================================================
--- SPS DEBUG | PY_PE | 09b sps_shrinkage
+-- This table aggregates shrinkage metrics for generating Supplier Scorecards.
+-- SPS Execution: Position No. 11.2
 -- spoilage_value y retail_revenue ya viajan desde producción
 -- spoilage_rate se mantiene para compatibilidad
 -- En Tableau: spoilage_rate = SUM(spoilage_value) / SUM(retail_revenue)

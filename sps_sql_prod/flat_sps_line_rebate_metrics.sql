@@ -1,6 +1,5 @@
--- ============================================================
--- SPS DEBUG | PY_PE | 04b sps_line_rebate_metrics
--- ============================================================
+-- This table aggregates line rebate metrics for generating Supplier Scorecards.
+-- SPS Execution: Position No. 4.2
 -- Ingredientes añadidos en grouping sets:
 --   SUM(sku_calc_gross_delivered) AS calc_gross_delivered
 --   SUM(sku_calc_gross_return)    AS calc_gross_return

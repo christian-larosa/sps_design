@@ -4,8 +4,8 @@ DECLARE param_date_start       DATE   DEFAULT DATE('2025-10-01');
 DECLARE param_date_end         DATE   DEFAULT CURRENT_DATE();
 -- ─────────────────────────────────────────────────────────────
 
--- This table extracts and maintains the financial metrics mapping required for generating Supplier Scorecards.
--- SPS Execution: Position No 11.1
+-- This table extracts and maintains the shrinkage metrics mapping required for generating Supplier Scorecards.
+-- SPS Execution: Position No. 11.1
 -- DML SCRIPT: SPS Refact Incremental Refresh for dh-darkstores-live.csm_automated_tables.sps_shrinkage_month
 CREATE OR REPLACE TABLE `dh-darkstores-live.csm_automated_tables.sps_shrinkage_month`
 AS

@@ -4,9 +4,8 @@ DECLARE param_date_start   DATE   DEFAULT DATE('2025-10-01');
 DECLARE param_date_end     DATE   DEFAULT CURRENT_DATE();
 -- ─────────────────────────────────────────────────────────────
 
--- ============================================================
--- SPS DEBUG | PY_PE | 14a sps_market_customers
--- Pos: 14a | Corre antes de sps_score_tableau
+-- This table extracts market customers metrics required for generating Supplier Scorecards.
+-- SPS Execution: Position No. 13
 -- Propósito: denominador para customer_penetration en segmentación
 -- Grain: global_entity_id × time_period × time_granularity
 -- Monthly:  clientes únicos en el mes (sin filtro de supplier)

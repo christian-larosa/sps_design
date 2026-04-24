@@ -1,6 +1,5 @@
--- ============================================================
--- SPS DEBUG | PY_PE | 11b sps_listed_sku
--- ============================================================
+-- This table aggregates listed SKU metrics for generating Supplier Scorecards.
+-- SPS Execution: Position No. 10.2
 
 CREATE OR REPLACE TABLE `dh-darkstores-live.csm_automated_tables.sps_listed_sku`
 CLUSTER BY

@@ -1,6 +1,5 @@
--- ============================================================
--- SPS DEBUG | MULTIPLE | 6.2 sps_purchase_order
--- ============================================================
+-- This table aggregates purchase order metrics for generating Supplier Scorecards.
+-- SPS Execution: Position No. 6.2
 -- Hardcoded para debug: país=PE, lookback de 4 trimestres
 -- Ingredientes de debugging añadidos:
 --   total_po_orders: count de todas las órdenes

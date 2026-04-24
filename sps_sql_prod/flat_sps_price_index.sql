@@ -1,5 +1,5 @@
--- ============================================================
--- SPS DEBUG | PY_PE | 07b sps_price_index
+-- This table aggregates price index metrics for generating Supplier Scorecards.
+-- SPS Execution: Position No. 8.2
 -- Ingredientes añadidos:
 --   price_index_numerator = ROUND(SUM(median_bp_index * sku_gpv_eur), 4)
 --   price_index_weight    = ROUND(SUM(sku_gpv_eur), 4)

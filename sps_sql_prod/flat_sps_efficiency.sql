@@ -1,6 +1,5 @@
--- ============================================================
--- SPS DEBUG | PY_PE | 08b sps_efficiency
--- ============================================================
+-- This table aggregates efficiency metrics for generating Supplier Scorecards.
+-- SPS Execution: Position No. 7.2
 
 CREATE OR REPLACE TABLE `dh-darkstores-live.csm_automated_tables.sps_efficiency`
 CLUSTER BY
