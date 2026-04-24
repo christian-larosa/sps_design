@@ -1,4 +1,5 @@
 -- ── PARAMS ───────────────────────────────────────────────────
+DECLARE param_global_entity_id STRING DEFAULT r'TB_EG|TB_CL|TB_SG|TB_TH|TB_HU|TB_ES|TB_JO|TB_KW|TB_AR|TB_AE|TB_QA|TB_PE|TB_TR|TB_UA|TB_IT|TB_OM|TB_BH|TB_HK|TB_PH|TB_SA';
 DECLARE param_country_code STRING DEFAULT r'eg|cl|sg|th|hu|es|jo|kw|ar|ae|qa|pe|tr|ua|it|om|bh|hk|ph|sa';
 DECLARE param_date_start   DATE   DEFAULT DATE('2025-10-01');
 DECLARE param_date_end     DATE   DEFAULT CURRENT_DATE();
@@ -32,7 +33,8 @@ base AS (
       '-', EXTRACT(YEAR FROM order_date)
     ) AS STRING) AS quarter_year
   FROM `dh-darkstores-live.csm_automated_tables.sps_customer_order`
-  WHERE REGEXP_CONTAINS(country_code, param_country_code)
+  WHERE REGEXP_CONTAINS(global_entity_id, param_global_entity_id)
+    AND REGEXP_CONTAINS(country_code, param_country_code)
     AND order_date BETWEEN param_date_start AND param_date_end
   -- Sin GROUP BY de supplier — queremos todos los clientes de la plataforma
   -- independientemente de qué supplier compraron

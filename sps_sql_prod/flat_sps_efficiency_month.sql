@@ -37,6 +37,7 @@ tmp_sp_product AS (
  FROM `dh-darkstores-live.csm_automated_tables.sps_product` AS sp
  WHERE TRUE
  AND REGEXP_CONTAINS(sp.global_entity_id, param_global_entity_id)
+ AND REGEXP_CONTAINS(sp.country_code, param_country_code)
  GROUP BY 1,2,3,4,5,6,7,8,9,10,11
 ),
 ranked_global_product AS (

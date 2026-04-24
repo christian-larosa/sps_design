@@ -25,14 +25,15 @@ pim AS (
     GROUP BY 1, 2
   ), 
   qc AS (
-    SELECT 
+    SELECT
       global_entity_id,
       country_code,
       sku AS sku_id,
-      pim_product_id, 
+      pim_product_id,
       brand_name,
     FROM `fulfillment-dwh-production.cl_dmart.qc_catalog_products`
     WHERE REGEXP_CONTAINS(global_entity_id, param_global_entity_id)
+      AND REGEXP_CONTAINS(country_code, param_country_code)
     GROUP BY 1, 2, 3, 4, 5
   ),
   products AS (
