@@ -1,5 +1,6 @@
 -- ── PARAMS ───────────────────────────────────────────────────
 DECLARE param_global_entity_id STRING DEFAULT r'TB_EG|TB_CL|TB_SG|TB_TH|TB_HU|TB_ES|TB_JO|TB_KW|TB_AR|TB_AE|TB_QA|TB_PE|TB_TR|TB_UA|TB_IT|TB_OM|TB_BH|TB_HK|TB_PH|TB_SA';
+DECLARE param_country_code STRING DEFAULT r'eg|cl|sg|th|hu|es|jo|kw|ar|ae|qa|pe|tr|ua|it|om|bh|hk|ph|sa';
 DECLARE param_date_start       DATE   DEFAULT DATE('2025-10-01');
 DECLARE param_date_end         DATE   DEFAULT CURRENT_DATE();
 -- ─────────────────────────────────────────────────────────────
@@ -67,7 +68,7 @@ tmp_efficiency AS (
  FROM `fulfillment-dwh-production.cl_dmart.sku_efficiency_detail_v2` AS e
  WHERE TRUE
     AND (DATE(e.partition_month) BETWEEN (SELECT date_in FROM date_in).date_in AND (SELECT date_fin FROM date_fin).date_fin)
-    AND e.global_entity_id REGEXP_CONTAINS(global_entity_id, param_global_entity_id)
+    AND REGEXP_CONTAINS(e.global_entity_id, param_global_entity_id)
 )
 SELECT
   CASE
