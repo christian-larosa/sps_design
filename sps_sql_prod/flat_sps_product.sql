@@ -1,5 +1,5 @@
 -- ── PARAMS ───────────────────────────────────────────────────
-DECLARE param_country_code     STRING DEFAULT r'eg|cl|sg|th|hu|es|jo|kw|ar|ae|qa|pe|tr|ua|it|om|bh|hk|ph|sa';
+DECLARE param_country_code     STRING DEFAULT r'hk|ph|sg|es|it|ua|eg|sa|ae|hu|ar|cl|pe|bh|jo|kw|om|qa|tr';
 DECLARE param_global_entity_id STRING DEFAULT r'FP_HK|FP_PH|FP_SG|GV_ES|GV_IT|GV_UA|HF_EG|HS_SA|TB_AE|NP_HU|PY_AR|PY_CL|PY_PE|TB_BH|TB_JO|TB_KW|TB_OM|TB_QA|YS_TR';
 DECLARE param_date_start       DATE   DEFAULT DATE('2025-10-01');
 DECLARE param_date_end         DATE   DEFAULT CURRENT_DATE();
