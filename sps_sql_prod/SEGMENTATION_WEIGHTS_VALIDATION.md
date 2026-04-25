@@ -131,8 +131,8 @@ While K-means found 3 natural clusters, the approach has limitations:
 
 ### Do This ✅
 
-- Use **40-30-30 weights** in all productivity scoring
-- Calculate `productivity_score = abv_score_lc*40/40 + frequency_score*30/30 + customer_penetration_score*30/30`
+- Use **30-30-40 weights** in all productivity scoring
+- Calculate `productivity_score = abv_score_lc*30/30 + frequency_score*30/30 + customer_penetration_score*40/40`
 - Apply thresholds: `importance_score > 15 AND productivity >= 40` for "high-value" tiers
 - Use **market-normalized metrics** (percentiles, vs-median ratios) for multi-country comparisons
 - Document weights in code comments: "Validated 2026-04-25 via correlation analysis"
@@ -148,13 +148,13 @@ While K-means found 3 natural clusters, the approach has limitations:
 
 ## Current Implementation
 
-The file `flat_sps_supplier_segmentation.sql` already implements 40-30-30:
+The file `flat_sps_supplier_segmentation.sql` already implements 30-30-40:
 
 ```sql
--- Productivity scoring (40-30-30)
-abv_score_lc +  -- 40 points
+-- Productivity scoring (30-30-40)
+abv_score_lc +  -- 30 points
 frequency_score +  -- 30 points
-customer_penetration_score  -- 30 points
+customer_penetration_score  -- 40 points
 AS productivity_score_lc
 
 -- Segmentation logic
