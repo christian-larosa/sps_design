@@ -7,10 +7,10 @@
 -- Scope: supplier_level='supplier', Monthly, division+principal+brand_owner
 -- Fuente: sps_score_tableau + sps_market_customers (ya joineado)
 -- Replica: old SPS _srm_supplier_scorecard_supplier_segmentation_rough.sql
--- Pesos de Productividad (rebalanceados):
---   ABV (cesta) = 30 puntos (era 50)
---   Frequency (lealtad) = 30 puntos (era 30)
---   Customer Penetration (alcance) = 40 puntos (era 20, ahora determinante)
+-- Pesos de Productividad (v2):
+--   ABV (cesta) = 40 puntos (priorizado)
+--   Frequency (lealtad) = 30 puntos
+--   Customer Penetration (alcance) = 30 puntos (balanceado)
 -- Diferencias vs old SPS:
 --   (1) Fuente: sps_score_tableau en lugar de _srm_supplier_scorecard_supplier_rough
 --   (2) Efficiency: AQS v7 (weight_efficiency/gpv_eur) en lugar de v5
@@ -161,17 +161,17 @@ scoring AS (
 
     -- ── EJE 2: PRODUCTIVIDAD — componentes ─────────────────────────────────
 
-    -- ABV score (peso 30 puntos) — balanceado con penetration
+    -- ABV score (peso 40 puntos) — priorizado
     -- Suppliers con gpv_flag = 'Not Applicable' reciben score 0
     CASE
       WHEN b.gpv_flag = 'Not Applicable' THEN 0.0
       ELSE ROUND(COALESCE(CASE
-        WHEN b.abv_lc_order >= p.p95_abv_lc THEN 30.0
+        WHEN b.abv_lc_order >= p.p95_abv_lc THEN 40.0
         WHEN b.abv_lc_order <= p.p15_abv_lc THEN 0.0
         ELSE SAFE_DIVIDE(
           b.abv_lc_order - p.p15_abv_lc,
           p.p95_abv_lc - p.p15_abv_lc
-        ) * 30
+        ) * 40
       END, 0), 3)
     END                                                      AS abv_score_lc,
 
@@ -189,18 +189,18 @@ scoring AS (
       END, 0), 3)
     END                                                      AS frequency_score,
 
-    -- Customer penetration score (peso 40 puntos) — determinante
-    -- Penetration es el mejor indicador de alcance real en el mercado
+    -- Customer penetration score (peso 30 puntos) — balanceado
+    -- Penetration es indicador de alcance en el mercado
     -- Suppliers con gpv_flag = 'Not Applicable' reciben score 0
     CASE
       WHEN b.gpv_flag = 'Not Applicable' THEN 0.0
       ELSE ROUND(COALESCE(CASE
-        WHEN b.customer_penetration >= p.p95_customer_penetration THEN 40.0
+        WHEN b.customer_penetration >= p.p95_customer_penetration THEN 30.0
         WHEN b.customer_penetration <= p.p15_customer_penetration THEN 0.0
         ELSE SAFE_DIVIDE(
           b.customer_penetration - p.p15_customer_penetration,
           p.p95_customer_penetration - p.p15_customer_penetration
-        ) * 40
+        ) * 30
       END, 0), 3)
     END                                                      AS customer_penetration_score
 
@@ -212,6 +212,16 @@ scoring AS (
     AND b.division_type     = p.division_type
     -- Percentiles are market-level metrics, not supplier-specific
     -- All suppliers in the partition get the same p15/p95 values
+),
+
+-- ── Supplier names mapping: limpiar sps_product para obtener supplier_id → supplier_name ─
+sps_product_clean AS (
+  SELECT DISTINCT
+    CAST(supplier_id AS STRING) as supplier_id,
+    supplier_name,
+    global_entity_id
+  FROM `dh-darkstores-live.csm_automated_tables.sps_product`
+  WHERE supplier_id IS NOT NULL
 ),
 
 -- ── Aggregation: sumar componentes de productividad ──────────────────────────
@@ -260,6 +270,46 @@ final AS (
     Net_Sales_lc
 
   FROM scoring
+),
+
+-- ── Add supplier names: join con sps_product para traducir IDs a nombres ───
+final_with_names AS (
+  SELECT
+    f.global_entity_id,
+    f.time_period,
+    f.time_granularity,
+    f.division_type,
+    f.supplier_level,
+    f.entity_key,
+    f.brand_sup,
+    -- Supplier name: si division/principal → traer supplier_name de sps_product; si brand_owner → entity_key
+    CASE
+      WHEN f.division_type IN ('division', 'principal') THEN COALESCE(p.supplier_name, f.entity_key)
+      ELSE f.entity_key
+    END AS supplier_name,
+    f.net_profit_lc,
+    f.abv_lc_order,
+    f.frequency,
+    f.customer_penetration,
+    f.gpv_flag,
+    f.p95_net_profit_lc,
+    f.p15_net_profit_lc,
+    f.importance_score_lc,
+    f.abv_score_lc,
+    f.frequency_score,
+    f.customer_penetration_score,
+    f.productivity_score_lc,
+    f.segment_lc,
+    f.total_customers,
+    f.total_orders,
+    f.total_market_customers,
+    f.Net_Sales_eur,
+    f.Net_Sales_lc
+  FROM final f
+  LEFT JOIN sps_product_clean p
+    ON f.entity_key = p.supplier_id
+    AND f.global_entity_id = p.global_entity_id
+    AND f.division_type IN ('division', 'principal')
 )
 
-SELECT * FROM final
+SELECT * FROM final_with_names
