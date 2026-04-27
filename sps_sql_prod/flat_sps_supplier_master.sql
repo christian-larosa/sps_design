@@ -86,8 +86,8 @@ SELECT
 
   -- ── Supplier name (from sps_product) ───────────────────────────────────
   CASE
-    WHEN b.division_type IN ('division', 'principal') THEN COALESCE(p.supplier_name, b.entity_key)
-    ELSE b.entity_key
+    WHEN b.division_type IN ('division', 'principal') THEN COALESCE(p.supplier_name, b.entity_key, 'Unknown')
+    ELSE COALESCE(b.entity_key, 'Unknown')
   END AS supplier_name,
 
   -- ── Ratios calculados ─────────────────────────────────────────────────
