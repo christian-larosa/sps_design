@@ -90,6 +90,17 @@ SELECT
     ELSE COALESCE(b.entity_key, 'Unknown')
   END AS supplier_name,
 
+  -- ── Entity brand name (mapped from global_entity_id prefix) ────────────
+  CASE
+    WHEN SUBSTR(b.global_entity_id, 1, 2) = 'PY' THEN 'PedidosYa'
+    WHEN SUBSTR(b.global_entity_id, 1, 2) = 'HS' THEN 'HungerStation'
+    WHEN SUBSTR(b.global_entity_id, 1, 2) = 'TB' THEN 'Talabat'
+    WHEN SUBSTR(b.global_entity_id, 1, 2) IN ('FP', 'FD', 'YS') THEN 'Pandora'
+    WHEN SUBSTR(b.global_entity_id, 1, 2) = 'GV' THEN 'Glovo'
+    WHEN SUBSTR(b.global_entity_id, 1, 2) IN ('IN', 'NP', 'HF') THEN 'Other'
+    ELSE 'Unknown'
+  END AS global_entity_name,
+
   -- ── Ratios calculados ─────────────────────────────────────────────────
   ROUND(SAFE_DIVIDE(b.on_time_orders,
     NULLIF(b.total_non_cancelled_po_orders, 0)), 4)               AS ratio_otd,
