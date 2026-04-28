@@ -337,5 +337,119 @@ Current design is working, just unintuitive.
 
 ---
 
+## Bug #4: Final Layer Hardcoded to Monthly Only (CRITICAL)
+
+### Severity
+🔴 **CRITICAL** — YTD rows generated but not scored; dashboards would show partial YTD data
+
+### Description
+Three final-layer tables had `time_granularity = 'Monthly'` hardcoded in WHERE clause:
+- ytd_sps_supplier_scoring.sql (line 29)
+- ytd_sps_supplier_master.sql (line 77)
+- ytd_sps_supplier_segmentation.sql (line 88)
+
+Result: YTD rows from score_tableau existed but were filtered out. No scores calculated for YTD.
+
+### Impact
+- YTD-2026 rows in score_tableau: Present ✅
+- YTD-2026 scores in supplier_scoring: Absent ❌
+- YTD-2026 master records: Absent ❌
+- YTD-2026 segmentation: Absent ❌
+- Dashboard would show incomplete YTD — monthly scores visible, YTD scores missing
+
+### Root Cause
+Original implementation assumed only Monthly scoring needed. When YTD aggregation layer was added upstream (score_tableau), final layer wasn't updated to consume it.
+
+### Solution: Parameter Mapping Strategy
+
+**Principle**: YTD scoring cannot use independent YTD-computed thresholds (percentiles would be distorted by cumulative aggregation). Instead, YTD scoring must reference the most recent Monthly thresholds.
+
+**Implementation**:
+
+```sql
+-- CTE to resolve reference period for parameters
+params_key AS (
+  SELECT
+    global_entity_id,
+    MAX(time_period) AS latest_monthly_period
+  FROM `dh-darkstores-live.csm_automated_tables.ytd_sps_scoring_params`
+  GROUP BY global_entity_id
+)
+
+-- Updated JOINs map YTD to latest monthly period
+LEFT JOIN `dh-darkstores-live.csm_automated_tables.ytd_sps_scoring_params` p
+  ON  r.global_entity_id = p.global_entity_id
+  AND p.time_period = CASE
+    WHEN r.time_granularity = 'YTD'
+      THEN pk.latest_monthly_period
+    ELSE r.time_period
+  END
+```
+
+**Why This Works**:
+- YTD-2026 rows join to 2026-04 (April = latest monthly) thresholds
+- Thresholds reflect actual market behavior (from monthly distribution)
+- Cumulative aggregation doesn't distort percentiles
+- YTD scoring answers: "How does this supplier rank in YTD vs monthly thresholds?"
+
+### Files Changed
+
+**3 final-layer tables**:
+1. ytd_sps_supplier_scoring.sql
+   - Line 29: `time_granularity = 'Monthly'` → `IN ('Monthly', 'YTD')`
+   - Added params_key CTE (lines 38-46)
+   - Updated scoring_params JOIN with CASE WHEN (lines 183-189)
+   - Updated market_yoy JOIN with CASE WHEN (lines 190-197)
+
+2. ytd_sps_supplier_master.sql
+   - Line 77: `time_granularity = 'Monthly'` → `IN ('Monthly', 'YTD')`
+   - Inherits parameter mapping via LEFT JOIN to ytd_sps_supplier_scoring
+
+3. ytd_sps_supplier_segmentation.sql
+   - Line 88: `time_granularity = 'Monthly'` → `IN ('Monthly', 'YTD')`
+   - Generates segments for both granularities
+
+**1 parameter table**:
+4. ytd_sps_market_yoy.sql
+   - Line 14: Added `AND time_granularity = 'Monthly'` filter
+   - Market YoY computed only on monthly rows (not YTD accumulatives)
+   - Prevents distorted threshold comparisons
+
+### Validation
+
+After fix:
+- YTD-2026 rows in supplier_scoring: Present ✅
+- YTD-2026 scores calculated: ✅
+- YTD-2026 parameters (via mapping): Use 2026-04 monthly ✅
+- Dashboard YTD scores: Visible ✅
+
+### Testing Checklist
+
+```sql
+-- Verify YTD rows exist in scoring
+SELECT COUNT(*) FROM ytd_sps_supplier_scoring
+WHERE time_granularity = 'YTD' AND global_entity_id = 'PY_PE';
+-- Expected: > 0 ✅
+
+-- Verify parameter join succeeds
+SELECT DISTINCT time_period FROM ytd_sps_supplier_scoring
+WHERE time_granularity = 'YTD'
+  AND threshold_yoy_max IS NOT NULL;
+-- Expected: YTD-2026 mapped to 2026-04 thresholds ✅
+
+-- Verify master records exist
+SELECT COUNT(*) FROM ytd_sps_supplier_master
+WHERE time_granularity = 'YTD' AND global_entity_id = 'PY_PE';
+-- Expected: > 0 ✅
+
+-- Verify segmentation complete
+SELECT COUNT(*) FROM ytd_sps_supplier_segmentation
+WHERE time_granularity = 'YTD' AND global_entity_id = 'PY_PE';
+-- Expected: > 0 ✅
+```
+
+---
+
 **Status**: All issues resolved and documented.  
+**Commit**: 90dd9de "fix: extend final layer (scoring, master, segmentation) to support YTD granularity with parameter mapping"  
 **Next Steps**: Automatic resolution of Apr 2026 rebate latency when source data updates.

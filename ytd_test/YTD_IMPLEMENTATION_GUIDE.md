@@ -698,7 +698,7 @@ SUM(spoilage_value_eur) / SUM(retail_revenue_eur)
 
 ## Summary of Changes (Commit Details)
 
-### Commit: "feat: complete YTD granularity implementation with calendar year logic"
+### Commit 1: "feat: complete YTD granularity implementation with calendar year logic"
 
 **9 aggregation tables modified**:
 1. ✅ ytd_sps_financial_metrics — Calendar-year WHERE, GROUPING SETS YTD
@@ -716,6 +716,22 @@ SUM(spoilage_value_eur) / SUM(retail_revenue_eur)
 - Valid Jan-Apr 2025 vs Jan-Apr 2026 YoY comparison
 - All sums verified (monthly rows sum to YTD)
 - Ready for production dashboard deployment
+
+### Commit 2: "fix: extend final layer (scoring, master, segmentation) to support YTD granularity with parameter mapping"
+
+**Critical discovery**: Final layer (scoring, master, segmentation) was hardcoded to `time_granularity = 'Monthly'`, filtering out YTD rows.
+
+**4 final-layer tables modified**:
+1. ✅ ytd_sps_supplier_scoring — Added params_key CTE for threshold mapping (YTD → latest monthly)
+2. ✅ ytd_sps_supplier_master — Extends scoring to YTD via inherited parameter join
+3. ✅ ytd_sps_supplier_segmentation — Generates segments for both Monthly and YTD
+4. ✅ ytd_sps_market_yoy — Filters to Monthly only (threshold source for YTD)
+
+**Result**:
+- YTD rows now scored and segmented
+- Thresholds (p25, p75, IQR) computed on Monthly data (reflects true market behavior)
+- YTD scoring uses latest monthly thresholds via CASE WHEN mapping
+- Dashboard now shows complete YTD metrics
 
 ---
 
