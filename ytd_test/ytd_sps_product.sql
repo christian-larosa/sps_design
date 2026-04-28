@@ -350,6 +350,86 @@ latest_non_null_supplier AS (
      ) = 1
 ),
 ---
+-- CTE : Front-Facing Category Level One (Most Common Across Vendors)
+---
+ff_level_one_raw AS (
+  SELECT
+    orig_qcp.global_entity_id,
+    orig_qcp.sku,
+    cd.category_name_local,
+    COUNT(DISTINCT vp.platform_vendor_id) AS vendor_count
+  FROM
+    `fulfillment-dwh-production.cl_dmart.qc_catalog_products` AS orig_qcp,
+    UNNEST(orig_qcp.vendor_products) AS vp,
+    UNNEST(vp.categories) AS c,
+    UNNEST(c.category_details) AS cd
+  WHERE
+    REGEXP_CONTAINS(orig_qcp.country_code, param_country_code)
+    AND c.category_level = 1
+    AND cd.is_primary_category = TRUE
+  GROUP BY
+    orig_qcp.global_entity_id,
+    orig_qcp.sku,
+    cd.category_name_local
+),
+
+ff_level_one AS (
+  SELECT
+    global_entity_id,
+    sku,
+    category_name_local AS front_facing_level_one
+  FROM (
+    SELECT
+      global_entity_id,
+      sku,
+      category_name_local,
+      ROW_NUMBER() OVER (PARTITION BY global_entity_id, sku ORDER BY vendor_count DESC, category_name_local) AS rn
+    FROM ff_level_one_raw
+  )
+  WHERE rn = 1
+),
+
+---
+-- CTE : Front-Facing Category Level Two (Most Common Across Vendors)
+---
+ff_level_two_raw AS (
+  SELECT
+    orig_qcp.global_entity_id,
+    orig_qcp.sku,
+    cd.category_name_local,
+    COUNT(DISTINCT vp.platform_vendor_id) AS vendor_count
+  FROM
+    `fulfillment-dwh-production.cl_dmart.qc_catalog_products` AS orig_qcp,
+    UNNEST(orig_qcp.vendor_products) AS vp,
+    UNNEST(vp.categories) AS c,
+    UNNEST(c.category_details) AS cd
+  WHERE
+    REGEXP_CONTAINS(orig_qcp.country_code, param_country_code)
+    AND c.category_level = 2
+    AND cd.is_primary_category = TRUE
+  GROUP BY
+    orig_qcp.global_entity_id,
+    orig_qcp.sku,
+    cd.category_name_local
+),
+
+ff_level_two AS (
+  SELECT
+    global_entity_id,
+    sku,
+    category_name_local AS front_facing_level_two
+  FROM (
+    SELECT
+      global_entity_id,
+      sku,
+      category_name_local,
+      ROW_NUMBER() OVER (PARTITION BY global_entity_id, sku ORDER BY vendor_count DESC, category_name_local) AS rn
+    FROM ff_level_two_raw
+  )
+  WHERE rn = 1
+),
+
+---
 -- CTE : FINAL ASSEMBLY with consistent Backfilling
 ---
 sku_sup_warehouse_qc_catalog AS (
@@ -402,7 +482,9 @@ sku_sup_warehouse_qc_catalog AS (
      qcp.level_two,
      qcp.level_three,
      qcp.warehouse_id,
-     sp.dc_warehouse_id
+     sp.dc_warehouse_id,
+     COALESCE(ffl1.front_facing_level_one, '_unknown_') AS front_facing_level_one,
+     COALESCE(ffl2.front_facing_level_two, '_unknown_') AS front_facing_level_two
  FROM
      products AS qcp
  LEFT JOIN
@@ -419,6 +501,15 @@ sku_sup_warehouse_qc_catalog AS (
      sku_backfill_map AS bm
      ON qcp.global_entity_id = bm.global_entity_id
      AND qcp.sku = bm.sku
+ -- Join front-facing categories
+ LEFT JOIN
+     ff_level_one AS ffl1
+     ON qcp.global_entity_id = ffl1.global_entity_id
+     AND qcp.sku = ffl1.sku
+ LEFT JOIN
+     ff_level_two AS ffl2
+     ON qcp.global_entity_id = ffl2.global_entity_id
+     AND qcp.sku = ffl2.sku
 ),
 ----------------------------------------------------------------------- 2 PURCHASE ORDERS (DYNAMIC DATE FILTERS APPLIED) ------------------------------------------------------------------------
 -- CTE : Base for Purchase Order Data (Combines unnesting, filtering, and aggregation)
@@ -679,6 +770,8 @@ sku_sup_warehouse_qc_catalog_agg_1 AS (
      CAST(supplier_id AS STRING) AS supplier_id,
      supplier_name,
      DATE(updated_at) AS updated_at,
+     MAX(front_facing_level_one) AS front_facing_level_one,
+     MAX(front_facing_level_two) AS front_facing_level_two,
      -- All other QC metadata fields are excluded here as per final requirement
  FROM
      sku_sup_warehouse_qc_catalog
@@ -705,8 +798,10 @@ SELECT DISTINCT
  COALESCE(po.supplier_id, qc.supplier_id, '_unknown_') AS supplier_id,
  COALESCE(po.supplier_name,ca.supplier_name, qc.supplier_name, '_unknown_') AS supplier_name,
  -- Mapping Type (Prioritize PO Mapping, Fallback to QC Catalog)
- COALESCE(po.mapping_type, 'qc_catalog') AS mapping_type, 
+ COALESCE(po.mapping_type, 'qc_catalog') AS mapping_type,
  COALESCE(po.updated_at, qc.updated_at) AS updated_at,
+ COALESCE(qc.front_facing_level_one, '_unknown_') AS front_facing_level_one,
+ COALESCE(qc.front_facing_level_two, '_unknown_') AS front_facing_level_two,
 FROM
  (sku_sup_warehouse_purch_ord AS po
     LEFT JOIN sup_qc_catalog_agg_1 ca
@@ -740,12 +835,14 @@ sku_sup_qc_catalog_agg AS (
      sqc.level_two,
      sqc.level_three,
      sqc.region_code,
+     sqc.front_facing_level_one,
+     sqc.front_facing_level_two,
  FROM
      sku_sup_warehouse_qc_catalog AS sqc
   LEFT JOIN srm_suppliers AS ss
    ON sqc.global_entity_id = ss.global_entity_id
     AND sqc.supplier_id = ss.supplier_id
- GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12
+ GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13,14
 ),
 joined_data AS (
     SELECT 
@@ -774,6 +871,8 @@ joined_data AS (
         MAX(qc.level_two) OVER(PARTITION BY ssw.sku_id) AS level_two,
         MAX(qc.level_three) OVER(PARTITION BY ssw.sku_id) AS level_three,
         MAX(qc.region_code) OVER(PARTITION BY ssw.sku_id) AS region_code,
+        MAX(qc.front_facing_level_one) OVER(PARTITION BY ssw.sku_id) AS front_facing_level_one,
+        MAX(qc.front_facing_level_two) OVER(PARTITION BY ssw.sku_id) AS front_facing_level_two,
     FROM sku_sup_warehouse AS ssw
     LEFT JOIN srm_suppliers AS ss
     ON ssw.global_entity_id = ss.global_entity_id

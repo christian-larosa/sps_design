@@ -29,10 +29,12 @@ sps_product AS (
     COALESCE(sp.level_one, '_unknown_') AS l1_master_category,
     COALESCE(sp.level_two, '_unknown_') AS l2_master_category,
     COALESCE(sp.level_three, '_unknown_') AS l3_master_category,
+    COALESCE(sp.front_facing_level_one, '_unknown_') AS front_facing_level_one,
+    COALESCE(sp.front_facing_level_two, '_unknown_') AS front_facing_level_two,
   FROM `dh-darkstores-live.csm_automated_tables.ytd_sps_product` AS sp
   WHERE TRUE
     AND REGEXP_CONTAINS(sp.global_entity_id, param_global_entity_id)
-  GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+  GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
 ),
 rdvr_dc_cmt AS (
   SELECT 
@@ -89,6 +91,8 @@ scm_dc_centralization_share AS (
     sp.l1_master_category,
     sp.l2_master_category,
     sp.l3_master_category,
+    sp.front_facing_level_one,
+    sp.front_facing_level_two,
     sp.supplier_id,
     sp.principal_supplier_id,
     sdcs.total_inbounded_quantity * rdrv.cost_euro AS allocated_delivery_cost_eur,

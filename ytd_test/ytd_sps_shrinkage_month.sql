@@ -28,7 +28,9 @@ tmp_sp_product AS (
     MAX(sp.global_supplier_id)                                 AS global_supplier_id,
     COALESCE(MAX(sp.level_one), '_unknown_')                   AS l1_master_category,
     COALESCE(MAX(sp.level_two), '_unknown_')                   AS l2_master_category,
-    COALESCE(MAX(sp.level_three), '_unknown_')                 AS l3_master_category
+    COALESCE(MAX(sp.level_three), '_unknown_')                 AS l3_master_category,
+    COALESCE(MAX(sp.front_facing_level_one), '_unknown_')      AS front_facing_level_one,
+    COALESCE(MAX(sp.front_facing_level_two), '_unknown_')      AS front_facing_level_two
   FROM `dh-darkstores-live.csm_automated_tables.ytd_sps_product` AS sp
   WHERE TRUE
     AND REGEXP_CONTAINS(sp.global_entity_id, param_global_entity_id)
@@ -81,6 +83,8 @@ SELECT
   COALESCE(te_sh.l1_master_category, sp_exact.l1_master_category) AS l1_master_category,
   COALESCE(te_sh.l2_master_category, sp_exact.l2_master_category) AS l2_master_category,
   COALESCE(te_sh.l3_master_category, sp_exact.l3_master_category) AS l3_master_category,
+  sp_exact.front_facing_level_one,
+  sp_exact.front_facing_level_two,
   sp_exact.principal_supplier_id,
   CASE
     WHEN DATE_TRUNC(CAST(te_sh.month AS DATE), MONTH) = DATE_TRUNC(CURRENT_DATE(), MONTH)

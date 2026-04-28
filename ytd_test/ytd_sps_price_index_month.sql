@@ -52,7 +52,9 @@ pim AS (
       global_entity_id,
       sku_id,
       CAST(supplier_id AS STRING) AS supplier_id,
-      supplier_name
+      supplier_name,
+      COALESCE(front_facing_level_one, '_unknown_') AS front_facing_level_one,
+      COALESCE(front_facing_level_two, '_unknown_') AS front_facing_level_two
     FROM `dh-darkstores-live.csm_automated_tables.ytd_sps_product`
     WHERE REGEXP_CONTAINS(global_entity_id, param_global_entity_id)
     GROUP BY ALL
@@ -101,6 +103,8 @@ pim AS (
       cbb.brand_name,
       ps.principal_supplier_id,
       ssm.supplier_id,
+      ssm.front_facing_level_one,
+      ssm.front_facing_level_two,
       cbb.price_index_quarter_year,
       cbb.price_index_ytd_year,
       cbb.price_index_month,

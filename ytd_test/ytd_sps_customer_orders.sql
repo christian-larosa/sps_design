@@ -39,7 +39,7 @@ tmp_sp_product AS (
     MAX(sp.updated_at) AS last_updated
   FROM `dh-darkstores-live.csm_automated_tables.ytd_sps_product` AS sp
   WHERE sp.global_entity_id IN ('FP_HK', 'FP_PH', 'FP_SG', 'GV_ES', 'GV_IT', 'GV_UA', 'HF_EG', 'HS_SA', 'IN_AE', 'IN_EG', 'NP_HU', 'PY_AR', 'PY_CL', 'PY_PE', 'TB_AE', 'TB_BH', 'TB_JO', 'TB_KW', 'TB_OM', 'TB_QA', 'YS_TR')
-  GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20
+  GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19
 ),
 ranked_global_product AS (
   SELECT

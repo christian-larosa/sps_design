@@ -35,7 +35,7 @@ tmp_sp_product AS (
   FROM `dh-darkstores-live.csm_automated_tables.ytd_sps_product` AS sp
   WHERE TRUE
     AND REGEXP_CONTAINS(sp.country_code, param_country_code)
-  GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12
+  GROUP BY 1,2,3,4,5,6,7,8,9,10,11
 ),
 tmp_supplier_performance_agg AS (
   SELECT

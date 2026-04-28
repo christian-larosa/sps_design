@@ -31,6 +31,8 @@ sps_product AS (
       COALESCE(sp.level_one, '_unknown_') AS l1_master_category,
       COALESCE(sp.level_two, '_unknown_') AS l2_master_category,
       COALESCE(sp.level_three, '_unknown_') AS l3_master_category,
+      COALESCE(sp.front_facing_level_one, '_unknown_') AS front_facing_level_one,
+      COALESCE(sp.front_facing_level_two, '_unknown_') AS front_facing_level_two,
     FROM `dh-darkstores-live.csm_automated_tables.ytd_sps_product` AS sp
     WHERE TRUE
       AND REGEXP_CONTAINS(sp.country_code, param_country_code)
@@ -79,6 +81,8 @@ sps_product AS (
       so.l1_master_category,
       so.l2_master_category,
       so.l3_master_category,
+      so.front_facing_level_one,
+      so.front_facing_level_two,
       CASE
         WHEN DATE_TRUNC(CAST(lr.month AS DATE), MONTH) = DATE_TRUNC(CURRENT_DATE(), MONTH)
         THEN CURRENT_DATE()

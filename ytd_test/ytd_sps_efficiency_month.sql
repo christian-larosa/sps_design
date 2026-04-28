@@ -31,6 +31,8 @@ tmp_sp_product AS (
    COALESCE(sp.level_one, '_unknown_') AS l1_master_category,
    COALESCE(sp.level_two, '_unknown_') AS l2_master_category,
    COALESCE(sp.level_three, '_unknown_') AS l3_master_category,
+   COALESCE(sp.front_facing_level_one, '_unknown_') AS front_facing_level_one,
+   COALESCE(sp.front_facing_level_two, '_unknown_') AS front_facing_level_two,
   --  COALESCE(CAST(ANY_VALUE(sp.sup_id_parent) AS STRING), '_unknown_') AS principal_supplier_id,
    ANY_VALUE(sp.sup_id_parent) AS principal_supplier_id,
    MAX(sp.updated_at) AS last_updated,
@@ -38,7 +40,7 @@ tmp_sp_product AS (
  WHERE TRUE
  AND REGEXP_CONTAINS(sp.global_entity_id, param_global_entity_id)
  AND REGEXP_CONTAINS(sp.country_code, param_country_code)
- GROUP BY 1,2,3,4,5,6,7,8,9,10,11
+ GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13
 ),
 ranked_global_product AS (
     -- This identifies the "latest" info for a SKU regardless of warehouse.
@@ -104,6 +106,8 @@ SELECT
   COALESCE(sp_exact.l1_master_category, sp_fallback.l1_master_category) AS l1_master_category,
   COALESCE(sp_exact.l2_master_category, sp_fallback.l2_master_category) AS l2_master_category,
   COALESCE(sp_exact.l3_master_category, sp_fallback.l3_master_category) AS l3_master_category,
+  COALESCE(sp_exact.front_facing_level_one, sp_fallback.front_facing_level_one) AS front_facing_level_one,
+  COALESCE(sp_exact.front_facing_level_two, sp_fallback.front_facing_level_two) AS front_facing_level_two,
   COALESCE(sp_exact.principal_supplier_id, sp_fallback.principal_supplier_id) AS principal_supplier_id
 FROM tmp_efficiency AS te
 -- Join exacto por warehouse (mismo que el original)

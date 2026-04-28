@@ -59,7 +59,7 @@ SELECT o.*,
  dpo.days_in_month,
  dpo.days_in_quarter,
  sfm.* EXCEPT (global_entity_id, time_period, time_granularity, division_type, supplier_level, entity_key, brand_sup, front_facing_level_one, front_facing_level_two),
- slrm.* EXCEPT (global_entity_id, time_period, time_granularity, division_type, supplier_level, entity_key, brand_sup, net_purchase),
+ slrm.* EXCEPT (global_entity_id, time_period, time_granularity, division_type, supplier_level, entity_key, brand_sup, front_facing_level_one, front_facing_level_two, net_purchase),
  -- ── PORTFOLIO CLUSTER (source: sps_efficiency, AQS v7 methodology) ──────────
  -- Denominators
  se.sku_listed,       -- Universe of listed SKUs for the supplier. Denominator for % zero and % slow movers. Aligns with COUNT(DISTINCT sku WHERE is_listed) in sku_efficiency_detail_v2.

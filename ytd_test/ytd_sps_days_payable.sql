@@ -46,6 +46,8 @@ SELECT
     IF(GROUPING(l3_master_category) = 0, l3_master_category, NULL),
     IF(GROUPING(l2_master_category) = 0, l2_master_category, NULL),
     IF(GROUPING(l1_master_category) = 0, l1_master_category, NULL),
+    IF(GROUPING(front_facing_level_two) = 0, front_facing_level_two, NULL),
+    IF(GROUPING(front_facing_level_one) = 0, front_facing_level_one, NULL),
     IF(GROUPING(brand_name) = 0, brand_name, NULL),
     IF(GROUPING(brand_owner_name) = 0, brand_owner_name, NULL),
     IF(GROUPING(supplier_id) = 0, supplier_id, NULL),
@@ -58,12 +60,14 @@ SELECT
       WHEN GROUPING(brand_name) = 0 THEN 'brand_name'
       ELSE 'total'
   END AS division_type,
-  CASE 
-      WHEN GROUPING(l3_master_category) = 0 THEN 'level_three' 
-      WHEN GROUPING(l2_master_category) = 0 THEN 'level_two' 
-      WHEN GROUPING(l1_master_category) = 0 THEN 'level_one' 
+  CASE
+      WHEN GROUPING(l3_master_category) = 0 THEN 'level_three'
+      WHEN GROUPING(l2_master_category) = 0 THEN 'level_two'
+      WHEN GROUPING(l1_master_category) = 0 THEN 'level_one'
+      WHEN GROUPING(front_facing_level_two) = 0 THEN 'front_facing_level_two'
+      WHEN GROUPING(front_facing_level_one) = 0 THEN 'front_facing_level_one'
       WHEN GROUPING(brand_name) = 0 THEN 'brand_name'
-      ELSE 'supplier' 
+      ELSE 'supplier'
   END AS supplier_level,
   CASE WHEN GROUPING(stock_days_month) = 0 THEN 'Monthly'
        WHEN GROUPING(stock_days_quarter) = 0 THEN 'Quarterly'
@@ -84,6 +88,8 @@ SELECT
     WHEN GROUPING(stock_days_month) = 0 THEN SAFE_SUBTRACT(MAX(payment_days), SAFE_DIVIDE(SUM(sku_month_end_stock_value_eur), SAFE_DIVIDE(SUM(sku_cogs_eur_monthy), MAX(days_in_month))))
     ELSE SAFE_SUBTRACT(MAX(payment_days), SAFE_DIVIDE(SUM(sku_month_end_stock_value_eur), SAFE_DIVIDE(SUM(sku_cogs_eur_monthy), MAX(days_in_quarter) / 3)))
   END AS dpo,
+  front_facing_level_one,
+  front_facing_level_two
 FROM `dh-darkstores-live.csm_automated_tables.ytd_sps_days_payable_month`
 WHERE (EXTRACT(YEAR FROM CAST(stock_days_month AS DATE)) = (SELECT current_year FROM date_config)
        AND CAST(stock_days_month AS DATE) <= (SELECT today FROM date_config))
@@ -122,6 +128,16 @@ GROUP BY GROUPING SETS (
     (stock_days_month, global_entity_id, brand_name, l2_master_category),
     (stock_days_month, global_entity_id, brand_name, l3_master_category),
 
+    -- 4. FRONT-FACING LEVEL DEEP-DIVE
+    (stock_days_month, global_entity_id, principal_supplier_id, front_facing_level_one),
+    (stock_days_month, global_entity_id, principal_supplier_id, front_facing_level_two),
+    (stock_days_month, global_entity_id, supplier_id, front_facing_level_one),
+    (stock_days_month, global_entity_id, supplier_id, front_facing_level_two),
+    (stock_days_month, global_entity_id, brand_owner_name, front_facing_level_one),
+    (stock_days_month, global_entity_id, brand_owner_name, front_facing_level_two),
+    (stock_days_month, global_entity_id, brand_name, front_facing_level_one),
+    (stock_days_month, global_entity_id, brand_name, front_facing_level_two),
+
     -- ==========================================================
     -- QUARTERLY BREAKDOWNS (quarter_year)
     -- ==========================================================
@@ -154,6 +170,16 @@ GROUP BY GROUPING SETS (
     (stock_days_quarter, global_entity_id, brand_name, l2_master_category),
     (stock_days_quarter, global_entity_id, brand_name, l3_master_category),
 
+    -- 4. FRONT-FACING LEVEL DEEP-DIVE
+    (stock_days_quarter, global_entity_id, principal_supplier_id, front_facing_level_one),
+    (stock_days_quarter, global_entity_id, principal_supplier_id, front_facing_level_two),
+    (stock_days_quarter, global_entity_id, supplier_id, front_facing_level_one),
+    (stock_days_quarter, global_entity_id, supplier_id, front_facing_level_two),
+    (stock_days_quarter, global_entity_id, brand_owner_name, front_facing_level_one),
+    (stock_days_quarter, global_entity_id, brand_owner_name, front_facing_level_two),
+    (stock_days_quarter, global_entity_id, brand_name, front_facing_level_one),
+    (stock_days_quarter, global_entity_id, brand_name, front_facing_level_two),
+
     -- ==========================================================
     -- YTD BREAKDOWNS (stock_days_ytd_year)
     -- ==========================================================
@@ -184,5 +210,15 @@ GROUP BY GROUPING SETS (
 
     (stock_days_ytd_year, global_entity_id, brand_name, l1_master_category),
     (stock_days_ytd_year, global_entity_id, brand_name, l2_master_category),
-    (stock_days_ytd_year, global_entity_id, brand_name, l3_master_category)
+    (stock_days_ytd_year, global_entity_id, brand_name, l3_master_category),
+
+    -- 4. FRONT-FACING LEVEL DEEP-DIVE
+    (stock_days_ytd_year, global_entity_id, principal_supplier_id, front_facing_level_one),
+    (stock_days_ytd_year, global_entity_id, principal_supplier_id, front_facing_level_two),
+    (stock_days_ytd_year, global_entity_id, supplier_id, front_facing_level_one),
+    (stock_days_ytd_year, global_entity_id, supplier_id, front_facing_level_two),
+    (stock_days_ytd_year, global_entity_id, brand_owner_name, front_facing_level_one),
+    (stock_days_ytd_year, global_entity_id, brand_owner_name, front_facing_level_two),
+    (stock_days_ytd_year, global_entity_id, brand_name, front_facing_level_one),
+    (stock_days_ytd_year, global_entity_id, brand_name, front_facing_level_two)
 );

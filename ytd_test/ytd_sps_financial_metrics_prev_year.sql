@@ -69,13 +69,15 @@ aggregated AS (
         WHEN GROUPING(brand_name) = 0 THEN 'brand_name'
         ELSE 'supplier' 
     END AS supplier_level,
-    CASE 
+    CASE
       WHEN GROUPING(month) = 0 THEN 'Monthly'
       WHEN GROUPING(quarter_year) = 0 THEN 'Quarterly'
       WHEN GROUPING(ytd_year) = 0 THEN 'YTD'
     END AS time_granularity,
     CAST(ROUND(IFNULL(SUM(total_price_paid_net_eur),0), 2) AS NUMERIC) AS Net_Sales_eur_LY,
-    CAST(ROUND(IFNULL(SUM(total_price_paid_net_lc),0), 2) AS NUMERIC) AS Net_Sales_lc_LY
+    CAST(ROUND(IFNULL(SUM(total_price_paid_net_lc),0), 2) AS NUMERIC) AS Net_Sales_lc_LY,
+    front_facing_level_one,
+    front_facing_level_two
   FROM filtered_ly
   GROUP BY GROUPING SETS (
     -- MONTHLY BREAKDOWNS
@@ -98,7 +100,15 @@ aggregated AS (
     (month, global_entity_id, brand_name, l1_master_category),
     (month, global_entity_id, brand_name, l2_master_category),
     (month, global_entity_id, brand_name, l3_master_category),
-    
+    (month, global_entity_id, principal_supplier_id, front_facing_level_one),
+    (month, global_entity_id, principal_supplier_id, front_facing_level_two),
+    (month, global_entity_id, supplier_id, front_facing_level_one),
+    (month, global_entity_id, supplier_id, front_facing_level_two),
+    (month, global_entity_id, brand_owner_name, front_facing_level_one),
+    (month, global_entity_id, brand_owner_name, front_facing_level_two),
+    (month, global_entity_id, brand_name, front_facing_level_one),
+    (month, global_entity_id, brand_name, front_facing_level_two),
+
     -- QUARTERLY BREAKDOWNS
     (quarter_year, global_entity_id, principal_supplier_id),
     (quarter_year, global_entity_id, supplier_id),
@@ -119,7 +129,15 @@ aggregated AS (
     (quarter_year, global_entity_id, brand_name, l1_master_category),
     (quarter_year, global_entity_id, brand_name, l2_master_category),
     (quarter_year, global_entity_id, brand_name, l3_master_category),
-    
+    (quarter_year, global_entity_id, principal_supplier_id, front_facing_level_one),
+    (quarter_year, global_entity_id, principal_supplier_id, front_facing_level_two),
+    (quarter_year, global_entity_id, supplier_id, front_facing_level_one),
+    (quarter_year, global_entity_id, supplier_id, front_facing_level_two),
+    (quarter_year, global_entity_id, brand_owner_name, front_facing_level_one),
+    (quarter_year, global_entity_id, brand_owner_name, front_facing_level_two),
+    (quarter_year, global_entity_id, brand_name, front_facing_level_one),
+    (quarter_year, global_entity_id, brand_name, front_facing_level_two),
+
     -- YTD BREAKDOWNS (Pattern B replica with ytd_year)
     (ytd_year, global_entity_id, principal_supplier_id),
     (ytd_year, global_entity_id, supplier_id),
@@ -139,7 +157,15 @@ aggregated AS (
     (ytd_year, global_entity_id, brand_owner_name, l3_master_category),
     (ytd_year, global_entity_id, brand_name, l1_master_category),
     (ytd_year, global_entity_id, brand_name, l2_master_category),
-    (ytd_year, global_entity_id, brand_name, l3_master_category)
+    (ytd_year, global_entity_id, brand_name, l3_master_category),
+    (ytd_year, global_entity_id, principal_supplier_id, front_facing_level_one),
+    (ytd_year, global_entity_id, principal_supplier_id, front_facing_level_two),
+    (ytd_year, global_entity_id, supplier_id, front_facing_level_one),
+    (ytd_year, global_entity_id, supplier_id, front_facing_level_two),
+    (ytd_year, global_entity_id, brand_owner_name, front_facing_level_one),
+    (ytd_year, global_entity_id, brand_owner_name, front_facing_level_two),
+    (ytd_year, global_entity_id, brand_name, front_facing_level_one),
+    (ytd_year, global_entity_id, brand_name, front_facing_level_two)
   )
 )
 

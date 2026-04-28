@@ -49,12 +49,14 @@ current_year_data AS (
         WHEN GROUPING(brand_name) = 0 THEN 'brand_name'
         ELSE 'total'
     END AS division_type,
-    CASE 
-        WHEN GROUPING(l3_master_category) = 0 THEN 'level_three' 
-        WHEN GROUPING(l2_master_category) = 0 THEN 'level_two' 
-        WHEN GROUPING(l1_master_category) = 0 THEN 'level_one' 
+    CASE
+        WHEN GROUPING(l3_master_category) = 0 THEN 'level_three'
+        WHEN GROUPING(l2_master_category) = 0 THEN 'level_two'
+        WHEN GROUPING(l1_master_category) = 0 THEN 'level_one'
+        WHEN GROUPING(front_facing_level_two) = 0 THEN 'front_facing_level_two'
+        WHEN GROUPING(front_facing_level_one) = 0 THEN 'front_facing_level_one'
         WHEN GROUPING(brand_name) = 0 THEN 'brand_name'
-        ELSE 'supplier' 
+        ELSE 'supplier'
     END AS supplier_level,
     CASE WHEN GROUPING(month) = 0 THEN 'Monthly'
          WHEN GROUPING(quarter_year) = 0 THEN 'Quarterly'
@@ -85,8 +87,8 @@ current_year_data AS (
     ------- Other aggregated metrics ---------------
     CAST(ROUND(SUM (amt_gbv_eur_dedup),2) AS NUMERIC) AS total_GBV,
     CAST(ROUND(SUM (fulfilled_quantity),2) AS NUMERIC) AS fulfilled_quantity,
-    ANY_VALUE(front_facing_level_one) AS front_facing_level_one,
-    ANY_VALUE(front_facing_level_two) AS front_facing_level_two
+    front_facing_level_one,
+    front_facing_level_two
   FROM (
     SELECT
       src.*,
@@ -150,6 +152,20 @@ GROUP BY GROUPING SETS (
     (month, global_entity_id, brand_name, l1_master_category),
     (month, global_entity_id, brand_name, l2_master_category),
     (month, global_entity_id, brand_name, l3_master_category),
+
+    -- 4. FRONT-FACING CATEGORY DEEP-DIVE (By Owner + Front-Facing Categories)
+    (month, global_entity_id, principal_supplier_id, front_facing_level_one),
+    (month, global_entity_id, principal_supplier_id, front_facing_level_two),
+
+    (month, global_entity_id, supplier_id, front_facing_level_one),
+    (month, global_entity_id, supplier_id, front_facing_level_two),
+
+    (month, global_entity_id, brand_owner_name, front_facing_level_one),
+    (month, global_entity_id, brand_owner_name, front_facing_level_two),
+
+    (month, global_entity_id, brand_name, front_facing_level_one),
+    (month, global_entity_id, brand_name, front_facing_level_two),
+
     -- ==========================================================
     -- QUARTERLY BREAKDOWNS (quarter_year)
     -- ==========================================================
@@ -181,6 +197,19 @@ GROUP BY GROUPING SETS (
     (quarter_year, global_entity_id, brand_name, l1_master_category),
     (quarter_year, global_entity_id, brand_name, l2_master_category),
     (quarter_year, global_entity_id, brand_name, l3_master_category),
+
+    -- 4. FRONT-FACING CATEGORY DEEP-DIVE (By Owner + Front-Facing Categories)
+    (quarter_year, global_entity_id, principal_supplier_id, front_facing_level_one),
+    (quarter_year, global_entity_id, principal_supplier_id, front_facing_level_two),
+
+    (quarter_year, global_entity_id, supplier_id, front_facing_level_one),
+    (quarter_year, global_entity_id, supplier_id, front_facing_level_two),
+
+    (quarter_year, global_entity_id, brand_owner_name, front_facing_level_one),
+    (quarter_year, global_entity_id, brand_owner_name, front_facing_level_two),
+
+    (quarter_year, global_entity_id, brand_name, front_facing_level_one),
+    (quarter_year, global_entity_id, brand_name, front_facing_level_two),
 
     -- YTD BREAKDOWNS (ytd_year)
     (ytd_year, global_entity_id, principal_supplier_id),

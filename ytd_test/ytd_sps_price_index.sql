@@ -41,6 +41,8 @@ WITH date_config AS (
       IF(GROUPING(l3_master_category) = 0, l3_master_category, NULL),
       IF(GROUPING(l2_master_category) = 0, l2_master_category, NULL),
       IF(GROUPING(l1_master_category) = 0, l1_master_category, NULL),
+      IF(GROUPING(front_facing_level_two) = 0, front_facing_level_two, NULL),
+      IF(GROUPING(front_facing_level_one) = 0, front_facing_level_one, NULL),
       IF(GROUPING(brand_name) = 0, brand_name, NULL),
       IF(GROUPING(brand_owner_name) = 0, brand_owner_name, NULL),
       IF(GROUPING(supplier_id) = 0, supplier_id, NULL),
@@ -53,12 +55,14 @@ WITH date_config AS (
         WHEN GROUPING(brand_name) = 0 THEN 'brand_name'
         ELSE 'total'
     END AS division_type,
-    CASE 
-        WHEN GROUPING(l3_master_category) = 0 THEN 'level_three' 
-        WHEN GROUPING(l2_master_category) = 0 THEN 'level_two' 
-        WHEN GROUPING(l1_master_category) = 0 THEN 'level_one' 
+    CASE
+        WHEN GROUPING(l3_master_category) = 0 THEN 'level_three'
+        WHEN GROUPING(l2_master_category) = 0 THEN 'level_two'
+        WHEN GROUPING(l1_master_category) = 0 THEN 'level_one'
+        WHEN GROUPING(front_facing_level_two) = 0 THEN 'front_facing_level_two'
+        WHEN GROUPING(front_facing_level_one) = 0 THEN 'front_facing_level_one'
         WHEN GROUPING(brand_name) = 0 THEN 'brand_name'
-        ELSE 'supplier' 
+        ELSE 'supplier'
     END AS supplier_level,
     CASE WHEN GROUPING(price_index_month) = 0 THEN 'Monthly'
          WHEN GROUPING(price_index_quarter_year) = 0 THEN 'Quarterly'
@@ -106,6 +110,16 @@ WITH date_config AS (
     (price_index_month, global_entity_id, brand_name, l2_master_category),
     (price_index_month, global_entity_id, brand_name, l3_master_category),
 
+    -- 4. FRONT-FACING LEVEL DEEP-DIVE
+    (price_index_month, global_entity_id, principal_supplier_id, front_facing_level_one),
+    (price_index_month, global_entity_id, principal_supplier_id, front_facing_level_two),
+    (price_index_month, global_entity_id, supplier_id, front_facing_level_one),
+    (price_index_month, global_entity_id, supplier_id, front_facing_level_two),
+    (price_index_month, global_entity_id, brand_owner_name, front_facing_level_one),
+    (price_index_month, global_entity_id, brand_owner_name, front_facing_level_two),
+    (price_index_month, global_entity_id, brand_name, front_facing_level_one),
+    (price_index_month, global_entity_id, brand_name, front_facing_level_two),
+
     -- ==========================================================
     -- QUARTERLY BREAKDOWNS (quarter_year)
     -- ==========================================================
@@ -138,6 +152,16 @@ WITH date_config AS (
     (price_index_quarter_year, global_entity_id, brand_name, l2_master_category),
     (price_index_quarter_year, global_entity_id, brand_name, l3_master_category),
 
+    -- 4. FRONT-FACING LEVEL DEEP-DIVE
+    (price_index_quarter_year, global_entity_id, principal_supplier_id, front_facing_level_one),
+    (price_index_quarter_year, global_entity_id, principal_supplier_id, front_facing_level_two),
+    (price_index_quarter_year, global_entity_id, supplier_id, front_facing_level_one),
+    (price_index_quarter_year, global_entity_id, supplier_id, front_facing_level_two),
+    (price_index_quarter_year, global_entity_id, brand_owner_name, front_facing_level_one),
+    (price_index_quarter_year, global_entity_id, brand_owner_name, front_facing_level_two),
+    (price_index_quarter_year, global_entity_id, brand_name, front_facing_level_one),
+    (price_index_quarter_year, global_entity_id, brand_name, front_facing_level_two),
+
     -- ==========================================================
     -- YTD BREAKDOWNS (price_index_ytd_year)
     -- ==========================================================
@@ -168,5 +192,15 @@ WITH date_config AS (
 
     (price_index_ytd_year, global_entity_id, brand_name, l1_master_category),
     (price_index_ytd_year, global_entity_id, brand_name, l2_master_category),
-    (price_index_ytd_year, global_entity_id, brand_name, l3_master_category)
+    (price_index_ytd_year, global_entity_id, brand_name, l3_master_category),
+
+    -- 4. FRONT-FACING LEVEL DEEP-DIVE
+    (price_index_ytd_year, global_entity_id, principal_supplier_id, front_facing_level_one),
+    (price_index_ytd_year, global_entity_id, principal_supplier_id, front_facing_level_two),
+    (price_index_ytd_year, global_entity_id, supplier_id, front_facing_level_one),
+    (price_index_ytd_year, global_entity_id, supplier_id, front_facing_level_two),
+    (price_index_ytd_year, global_entity_id, brand_owner_name, front_facing_level_one),
+    (price_index_ytd_year, global_entity_id, brand_owner_name, front_facing_level_two),
+    (price_index_ytd_year, global_entity_id, brand_name, front_facing_level_one),
+    (price_index_ytd_year, global_entity_id, brand_name, front_facing_level_two)
   );

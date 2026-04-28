@@ -31,10 +31,12 @@ sps_product AS (
       COALESCE(sp.level_one, '_unknown_') AS l1_master_category,
       COALESCE(sp.level_two, '_unknown_') AS l2_master_category,
       COALESCE(sp.level_three, '_unknown_') AS l3_master_category,
+      COALESCE(sp.front_facing_level_one, '_unknown_') AS front_facing_level_one,
+      COALESCE(sp.front_facing_level_two, '_unknown_') AS front_facing_level_two,
     FROM `dh-darkstores-live.csm_automated_tables.ytd_sps_product` AS sp
     WHERE TRUE
       AND REGEXP_CONTAINS(sp.global_entity_id, param_global_entity_id)
-    GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+    GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
   ),
   sps_listed_sku AS (
     SELECT
@@ -69,6 +71,8 @@ sps_product AS (
     sp.l1_master_category,
     sp.l2_master_category,
     sp.l3_master_category,
+    sp.front_facing_level_one,
+    sp.front_facing_level_two,
     sls.sku AS sku_id,
     -- COUNT(DISTINCT sls.sku) AS listed_skus
     CASE
@@ -81,5 +85,5 @@ sps_product AS (
     ON sp.global_entity_id = sls.global_entity_id
     AND sp.sku_id = sls.sku
   WHERE TRUE
-  GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13;
+  GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14;
 

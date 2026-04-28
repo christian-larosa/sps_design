@@ -52,6 +52,16 @@ pim AS (
     WHERE REGEXP_CONTAINS(sm.global_entity_id, param_global_entity_id)
     GROUP BY ALL
   ),
+  front_facing_categories AS (
+    SELECT
+      global_entity_id,
+      sku_id,
+      COALESCE(front_facing_level_one, '_unknown_') AS front_facing_level_one,
+      COALESCE(front_facing_level_two, '_unknown_') AS front_facing_level_two
+    FROM `dh-darkstores-live.csm_automated_tables.ytd_sps_product`
+    WHERE REGEXP_CONTAINS(global_entity_id, param_global_entity_id)
+    GROUP BY ALL
+  ),
   account AS (
     SELECT
       a.global_entity_id,
@@ -120,6 +130,8 @@ pim AS (
       sm.principal_supplier_id,
       sm.division_type,
       a.payment_days,
+      ff.front_facing_level_one,
+      ff.front_facing_level_two,
       CASE
         WHEN DATE_TRUNC(CAST(sd.month AS DATE), MONTH) = DATE_TRUNC(CURRENT_DATE(), MONTH)
         THEN CURRENT_DATE()
@@ -128,5 +140,6 @@ pim AS (
     FROM sku_stock_days_on_hand AS sd
     LEFT JOIN account AS a ON sd.global_entity_id = a.global_entity_id AND sd.supplier_id = a.supplier_id
     LEFT JOIN supplier_mapping AS sm ON sd.global_entity_id = sm.global_entity_id AND sd.supplier_id = sm.supplier_id
-    LEFT JOIN products AS p ON sd.sku_id = p.sku_id AND sd.global_entity_id = p.global_entity_id;
+    LEFT JOIN products AS p ON sd.sku_id = p.sku_id AND sd.global_entity_id = p.global_entity_id
+    LEFT JOIN front_facing_categories AS ff ON sd.sku_id = ff.sku_id AND sd.global_entity_id = ff.global_entity_id;
 

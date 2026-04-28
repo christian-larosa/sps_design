@@ -33,6 +33,8 @@ base AS (
     principal_supplier_id,
     brand_name,
     brand_owner_name,
+    front_facing_level_one,
+    front_facing_level_two,
     l1_master_category,
     l2_master_category,
     l3_master_category,
@@ -68,6 +70,8 @@ SELECT
       IF(GROUPING(l3_master_category) = 0, l3_master_category, NULL),
       IF(GROUPING(l2_master_category) = 0, l2_master_category, NULL),
       IF(GROUPING(l1_master_category) = 0, l1_master_category, NULL),
+      IF(GROUPING(front_facing_level_two) = 0, front_facing_level_two, NULL),
+      IF(GROUPING(front_facing_level_one) = 0, front_facing_level_one, NULL),
       IF(GROUPING(brand_name) = 0, brand_name, NULL),
       IF(GROUPING(brand_owner_name) = 0, brand_owner_name, NULL),
       IF(GROUPING(supplier_id) = 0, supplier_id, NULL),
@@ -80,12 +84,14 @@ SELECT
         WHEN GROUPING(brand_name) = 0 THEN 'brand_name'
         ELSE 'total'
     END AS division_type,
-    CASE 
-        WHEN GROUPING(l3_master_category) = 0 THEN 'level_three' 
-        WHEN GROUPING(l2_master_category) = 0 THEN 'level_two' 
-        WHEN GROUPING(l1_master_category) = 0 THEN 'level_one' 
+    CASE
+        WHEN GROUPING(l3_master_category) = 0 THEN 'level_three'
+        WHEN GROUPING(l2_master_category) = 0 THEN 'level_two'
+        WHEN GROUPING(l1_master_category) = 0 THEN 'level_one'
+        WHEN GROUPING(front_facing_level_two) = 0 THEN 'front_facing_level_two'
+        WHEN GROUPING(front_facing_level_one) = 0 THEN 'front_facing_level_one'
         WHEN GROUPING(brand_name) = 0 THEN 'brand_name'
-        ELSE 'supplier' 
+        ELSE 'supplier'
     END AS supplier_level,
   CASE WHEN GROUPING(month) = 0 THEN 'Monthly'
          WHEN GROUPING(quarter_year) = 0 THEN 'Quarterly'
@@ -98,7 +104,9 @@ SELECT
   ROUND(SUM(sku_calc_gross_delivered), 2) AS calc_gross_delivered,
   ROUND(SUM(sku_calc_gross_return), 2)    AS calc_gross_return,
   ROUND(SUM(sku_calc_net_delivered), 2)   AS calc_net_delivered,
-  ROUND(SUM(sku_calc_net_return), 2)      AS calc_net_return
+  ROUND(SUM(sku_calc_net_return), 2)      AS calc_net_return,
+  front_facing_level_one,
+  front_facing_level_two
 FROM filtered
 GROUP BY GROUPING SETS (
     -- ==========================================================
@@ -133,6 +141,16 @@ GROUP BY GROUPING SETS (
     (month, global_entity_id, brand_name, l2_master_category),
     (month, global_entity_id, brand_name, l3_master_category),
 
+    -- 4. FRONT-FACING LEVEL DEEP-DIVE
+    (month, global_entity_id, principal_supplier_id, front_facing_level_one),
+    (month, global_entity_id, principal_supplier_id, front_facing_level_two),
+    (month, global_entity_id, supplier_id, front_facing_level_one),
+    (month, global_entity_id, supplier_id, front_facing_level_two),
+    (month, global_entity_id, brand_owner_name, front_facing_level_one),
+    (month, global_entity_id, brand_owner_name, front_facing_level_two),
+    (month, global_entity_id, brand_name, front_facing_level_one),
+    (month, global_entity_id, brand_name, front_facing_level_two),
+
     -- ==========================================================
     -- QUARTERLY BREAKDOWNS (quarter_year)
     -- ==========================================================
@@ -165,6 +183,16 @@ GROUP BY GROUPING SETS (
     (quarter_year, global_entity_id, brand_name, l2_master_category),
     (quarter_year, global_entity_id, brand_name, l3_master_category),
 
+    -- 4. FRONT-FACING LEVEL DEEP-DIVE
+    (quarter_year, global_entity_id, principal_supplier_id, front_facing_level_one),
+    (quarter_year, global_entity_id, principal_supplier_id, front_facing_level_two),
+    (quarter_year, global_entity_id, supplier_id, front_facing_level_one),
+    (quarter_year, global_entity_id, supplier_id, front_facing_level_two),
+    (quarter_year, global_entity_id, brand_owner_name, front_facing_level_one),
+    (quarter_year, global_entity_id, brand_owner_name, front_facing_level_two),
+    (quarter_year, global_entity_id, brand_name, front_facing_level_one),
+    (quarter_year, global_entity_id, brand_name, front_facing_level_two),
+
     -- ==========================================================
     -- YTD BREAKDOWNS (ytd_year)
     -- ==========================================================
@@ -195,5 +223,15 @@ GROUP BY GROUPING SETS (
 
     (ytd_year, global_entity_id, brand_name, l1_master_category),
     (ytd_year, global_entity_id, brand_name, l2_master_category),
-    (ytd_year, global_entity_id, brand_name, l3_master_category)
+    (ytd_year, global_entity_id, brand_name, l3_master_category),
+
+    -- 4. FRONT-FACING LEVEL DEEP-DIVE
+    (ytd_year, global_entity_id, principal_supplier_id, front_facing_level_one),
+    (ytd_year, global_entity_id, principal_supplier_id, front_facing_level_two),
+    (ytd_year, global_entity_id, supplier_id, front_facing_level_one),
+    (ytd_year, global_entity_id, supplier_id, front_facing_level_two),
+    (ytd_year, global_entity_id, brand_owner_name, front_facing_level_one),
+    (ytd_year, global_entity_id, brand_owner_name, front_facing_level_two),
+    (ytd_year, global_entity_id, brand_name, front_facing_level_one),
+    (ytd_year, global_entity_id, brand_name, front_facing_level_two)
 );
