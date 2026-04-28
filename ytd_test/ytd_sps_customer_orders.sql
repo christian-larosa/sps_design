@@ -33,11 +33,13 @@ tmp_sp_product AS (
     COALESCE(sp.level_one, '_unknown_') AS level_one,
     COALESCE(sp.level_two, '_unknown_') AS level_two,
     COALESCE(sp.level_three, '_unknown_') AS level_three,
+    COALESCE(sp.front_facing_level_one, '_unknown_') AS front_facing_level_one,
+    COALESCE(sp.front_facing_level_two, '_unknown_') AS front_facing_level_two,
     sp.region_code,
     MAX(sp.updated_at) AS last_updated
   FROM `dh-darkstores-live.csm_automated_tables.ytd_sps_product` AS sp
   WHERE sp.global_entity_id IN ('FP_HK', 'FP_PH', 'FP_SG', 'GV_ES', 'GV_IT', 'GV_UA', 'HF_EG', 'HS_SA', 'IN_AE', 'IN_EG', 'NP_HU', 'PY_AR', 'PY_CL', 'PY_PE', 'TB_AE', 'TB_BH', 'TB_JO', 'TB_KW', 'TB_OM', 'TB_QA', 'YS_TR')
-  GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17
+  GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20
 ),
 ranked_global_product AS (
   SELECT
@@ -231,6 +233,8 @@ SELECT
   COALESCE(sp_exact.level_one, sp_fallback.level_one, '_unknown_') AS level_one,
   COALESCE(sp_exact.level_two, sp_fallback.level_two, '_unknown_') AS level_two,
   COALESCE(sp_exact.level_three, sp_fallback.level_three, '_unknown_') AS level_three,
+  COALESCE(sp_exact.front_facing_level_one, sp_fallback.front_facing_level_one, '_unknown_') AS front_facing_level_one,
+  COALESCE(sp_exact.front_facing_level_two, sp_fallback.front_facing_level_two, '_unknown_') AS front_facing_level_two,
   COALESCE(sp_exact.region_code, sp_fallback.region_code) AS region_code,
   -- 8. Partitioning
   DATE_TRUNC(te_o.order_date, MONTH) AS partition_month

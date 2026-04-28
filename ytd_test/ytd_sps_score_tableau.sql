@@ -58,7 +58,7 @@ SELECT o.*,
  dpo.cogs_monthly_eur,
  dpo.days_in_month,
  dpo.days_in_quarter,
- sfm.* EXCEPT (global_entity_id, time_period, time_granularity, division_type, supplier_level, entity_key, brand_sup),
+ sfm.* EXCEPT (global_entity_id, time_period, time_granularity, division_type, supplier_level, entity_key, brand_sup, front_facing_level_one, front_facing_level_two),
  slrm.* EXCEPT (global_entity_id, time_period, time_granularity, division_type, supplier_level, entity_key, brand_sup, net_purchase),
  -- ── PORTFOLIO CLUSTER (source: sps_efficiency, AQS v7 methodology) ──────────
  -- Denominators
@@ -105,6 +105,8 @@ SELECT o.*,
  po.total_compliant_po_orders,
  po.total_received_qty_ALL,
  po.total_demanded_qty_ALL,
+ po.front_facing_level_one,
+ po.front_facing_level_two,
  mc.total_market_customers,
  mc.total_market_orders
 FROM all_keys AS o

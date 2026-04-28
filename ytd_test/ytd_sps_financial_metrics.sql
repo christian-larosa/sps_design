@@ -84,7 +84,9 @@ current_year_data AS (
     CAST(ROUND(IFNULL(SAFE_DIVIDE(ROUND(IFNULL(SUM(CASE WHEN unit_discount_amount_lc > 0 THEN total_price_paid_net_lc END),0),2), ROUND(IFNULL(SUM(total_price_paid_net_lc),0), 2)), 0), 4) AS NUMERIC) AS Promo_GPV_contribution_lc,
     ------- Other aggregated metrics ---------------
     CAST(ROUND(SUM (amt_gbv_eur_dedup),2) AS NUMERIC) AS total_GBV,
-    CAST(ROUND(SUM (fulfilled_quantity),2) AS NUMERIC) AS fulfilled_quantity
+    CAST(ROUND(SUM (fulfilled_quantity),2) AS NUMERIC) AS fulfilled_quantity,
+    ANY_VALUE(front_facing_level_one) AS front_facing_level_one,
+    ANY_VALUE(front_facing_level_two) AS front_facing_level_two
   FROM (
     SELECT
       src.*,

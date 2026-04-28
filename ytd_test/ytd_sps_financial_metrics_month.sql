@@ -37,6 +37,8 @@ date_fin AS (
     COALESCE(os.level_one, '_unknown_') AS l1_master_category,
     COALESCE(os.level_two, '_unknown_') AS l2_master_category,
     COALESCE(os.level_three, '_unknown_') AS l3_master_category,
+    COALESCE(os.front_facing_level_one, '_unknown_') AS front_facing_level_one,
+    COALESCE(os.front_facing_level_two, '_unknown_') AS front_facing_level_two,
     os.order_id,
     os.order_status,
     os.ordered_quantity,

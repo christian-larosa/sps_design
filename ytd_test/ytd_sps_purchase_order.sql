@@ -77,7 +77,9 @@ SELECT
      COUNT(DISTINCT(po_order_id)) AS total_po_orders,
      COUNT(DISTINCT(CASE WHEN is_compliant_flag THEN po_order_id END)) AS total_compliant_po_orders,
      COALESCE(SUM(total_received_qty_per_order), 0) AS total_received_qty_ALL,
-     COALESCE(SUM(total_demanded_qty_per_order), 0) AS total_demanded_qty_ALL
+     COALESCE(SUM(total_demanded_qty_per_order), 0) AS total_demanded_qty_ALL,
+     ANY_VALUE(front_facing_level_one) AS front_facing_level_one,
+     ANY_VALUE(front_facing_level_two) AS front_facing_level_two
   FROM `dh-darkstores-live.csm_automated_tables.ytd_sps_purchase_order_month`
   WHERE (EXTRACT(YEAR FROM CAST(month AS DATE)) = (SELECT current_year FROM date_config)
          AND CAST(month AS DATE) <= (SELECT today FROM date_config))
