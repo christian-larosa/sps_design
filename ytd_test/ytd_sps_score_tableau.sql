@@ -108,8 +108,6 @@ SELECT o.*,
  po.total_compliant_po_orders,
  po.total_received_qty_ALL,
  po.total_demanded_qty_ALL,
- po.front_facing_level_one,
- po.front_facing_level_two,
  mc.total_market_customers,
  mc.total_market_orders
 FROM all_keys AS o
