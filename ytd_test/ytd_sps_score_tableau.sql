@@ -60,6 +60,9 @@ SELECT o.*,
  dpo.days_in_quarter,
  sfm.* EXCEPT (global_entity_id, time_period, time_granularity, division_type, supplier_level, entity_key, brand_sup, front_facing_level_one, front_facing_level_two),
  slrm.* EXCEPT (global_entity_id, time_period, time_granularity, division_type, supplier_level, entity_key, brand_sup, front_facing_level_one, front_facing_level_two, net_purchase),
+ slrm.total_rebate AS back_margin_amt_lc,
+ COALESCE(slrm.total_rebate_wo_dist_allowance_lc, 0.0) AS back_margin_wo_dist_allowance_amt_lc,
+ CAST(ROUND(SAFE_DIVIDE(sfm.Net_Sales_lc + sfm.total_supplier_funding_lc - sfm.COGS_lc + COALESCE(slrm.total_rebate, 0.0), NULLIF(sfm.Net_Sales_lc, 0)), 4) AS NUMERIC) AS Total_Margin_LC,
  -- ── PORTFOLIO CLUSTER (source: sps_efficiency, AQS v7 methodology) ──────────
  -- Denominators
  se.sku_listed,       -- Universe of listed SKUs for the supplier. Denominator for % zero and % slow movers. Aligns with COUNT(DISTINCT sku WHERE is_listed) in sku_efficiency_detail_v2.
