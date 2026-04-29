@@ -80,9 +80,7 @@ SELECT
   SUM(spoilage_value_lc)  AS spoilage_value_lc,
   SUM(retail_revenue_eur) AS retail_revenue_eur,
   SUM(retail_revenue_lc)  AS retail_revenue_lc,
-  SAFE_DIVIDE(SUM(spoilage_value_eur), SUM(retail_revenue_eur)) AS spoilage_rate,
-  front_facing_level_one,
-  front_facing_level_two,
+  SAFE_DIVIDE(SUM(spoilage_value_eur), SUM(retail_revenue_eur)) AS spoilage_rate
 FROM `dh-darkstores-live.csm_automated_tables.ytd_sps_shrinkage_month`
 WHERE (EXTRACT(YEAR FROM CAST(month AS DATE)) = (SELECT current_year FROM date_config)
        AND CAST(month AS DATE) <= (SELECT today FROM date_config))

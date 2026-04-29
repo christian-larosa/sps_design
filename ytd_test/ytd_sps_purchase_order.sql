@@ -41,6 +41,8 @@ SELECT
       IF(GROUPING(l3_master_category) = 0, l3_master_category, NULL),
       IF(GROUPING(l2_master_category) = 0, l2_master_category, NULL),
       IF(GROUPING(l1_master_category) = 0, l1_master_category, NULL),
+      IF(GROUPING(front_facing_level_two) = 0, front_facing_level_two, NULL),
+      IF(GROUPING(front_facing_level_one) = 0, front_facing_level_one, NULL),
       IF(GROUPING(brand_name) = 0, brand_name, NULL),
       IF(GROUPING(brand_owner_name) = 0, brand_owner_name, NULL),
       IF(GROUPING(supplier_id) = 0, supplier_id, NULL),

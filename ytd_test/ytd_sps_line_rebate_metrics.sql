@@ -104,9 +104,7 @@ SELECT
   ROUND(SUM(sku_calc_gross_delivered), 2) AS calc_gross_delivered,
   ROUND(SUM(sku_calc_gross_return), 2)    AS calc_gross_return,
   ROUND(SUM(sku_calc_net_delivered), 2)   AS calc_net_delivered,
-  ROUND(SUM(sku_calc_net_return), 2)      AS calc_net_return,
-  front_facing_level_one,
-  front_facing_level_two
+  ROUND(SUM(sku_calc_net_return), 2)      AS calc_net_return
 FROM filtered
 GROUP BY GROUPING SETS (
     -- ==========================================================
