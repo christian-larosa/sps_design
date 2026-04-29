@@ -19,14 +19,13 @@ WITH date_config AS (
     EXTRACT(YEAR FROM CURRENT_DATE()) as current_year,
     EXTRACT(YEAR FROM CURRENT_DATE()) - 1 as prior_year
 ),
-current_year_data AS (
+monthly_quarterly_data AS (
   SELECT
     global_entity_id,
     CASE WHEN GROUPING(month) = 0 THEN CAST(month AS STRING)
          WHEN GROUPING(quarter_year) = 0 THEN quarter_year
-         ELSE CONCAT('YTD-', CAST(ytd_year AS STRING))
     END AS time_period,
-    CASE 
+    CASE
         WHEN GROUPING(principal_supplier_id) = 0 THEN principal_supplier_id
         WHEN GROUPING(supplier_id) = 0 THEN supplier_id
         WHEN GROUPING(brand_owner_name) = 0 THEN brand_owner_name
@@ -44,10 +43,10 @@ current_year_data AS (
       IF(GROUPING(supplier_id) = 0, supplier_id, NULL),
       principal_supplier_id
     ) AS entity_key,
-    CASE 
-        WHEN GROUPING(principal_supplier_id) = 0 THEN 'principal' 
-        WHEN GROUPING(supplier_id) = 0 THEN 'division' 
-        WHEN GROUPING(brand_owner_name) = 0 THEN 'brand_owner' 
+    CASE
+        WHEN GROUPING(principal_supplier_id) = 0 THEN 'principal'
+        WHEN GROUPING(supplier_id) = 0 THEN 'division'
+        WHEN GROUPING(brand_owner_name) = 0 THEN 'brand_owner'
         WHEN GROUPING(brand_name) = 0 THEN 'brand_name'
         ELSE 'total'
     END AS division_type,
@@ -62,7 +61,6 @@ current_year_data AS (
     END AS supplier_level,
     CASE WHEN GROUPING(month) = 0 THEN 'Monthly'
          WHEN GROUPING(quarter_year) = 0 THEN 'Quarterly'
-         ELSE 'YTD'
     END AS time_granularity,
     COUNT(DISTINCT analytical_customer_id) AS total_customers,
     COUNT(DISTINCT sku_id) AS total_skus_sold,
@@ -126,7 +124,7 @@ GROUP BY GROUPING SETS (
     -- ==========================================================
     -- MONTHLY BREAKDOWNS (month)
     -- ==========================================================
-    
+
     -- 1. TOTAL OWNER LEVEL (No Category/Brand Deep-dive)
     (month, global_entity_id, principal_supplier_id),
     (month, global_entity_id, supplier_id),
@@ -136,7 +134,7 @@ GROUP BY GROUPING SETS (
     (month, global_entity_id, principal_supplier_id, brand_name),
     (month, global_entity_id, supplier_id, brand_name),
     (month, global_entity_id, brand_owner_name, brand_name),
-    (month, global_entity_id, brand_name), 
+    (month, global_entity_id, brand_name),
 
     -- 3. CATEGORY DEEP-DIVE (By Owner + Categories)
     (month, global_entity_id, principal_supplier_id, l1_master_category),
@@ -149,7 +147,7 @@ GROUP BY GROUPING SETS (
 
     (month, global_entity_id, brand_owner_name, l1_master_category),
     (month, global_entity_id, brand_owner_name, l2_master_category),
-    (month, global_entity_id, brand_owner_name, l3_master_category), 
+    (month, global_entity_id, brand_owner_name, l3_master_category),
 
     (month, global_entity_id, brand_name, l1_master_category),
     (month, global_entity_id, brand_name, l2_master_category),
@@ -171,7 +169,7 @@ GROUP BY GROUPING SETS (
     -- ==========================================================
     -- QUARTERLY BREAKDOWNS (quarter_year)
     -- ==========================================================
-    
+
     -- 1. TOTAL OWNER LEVEL
     (quarter_year, global_entity_id, principal_supplier_id),
     (quarter_year, global_entity_id, supplier_id),
@@ -194,7 +192,7 @@ GROUP BY GROUPING SETS (
 
     (quarter_year, global_entity_id, brand_owner_name, l1_master_category),
     (quarter_year, global_entity_id, brand_owner_name, l2_master_category),
-    (quarter_year, global_entity_id, brand_owner_name, l3_master_category), 
+    (quarter_year, global_entity_id, brand_owner_name, l3_master_category),
 
     (quarter_year, global_entity_id, brand_name, l1_master_category),
     (quarter_year, global_entity_id, brand_name, l2_master_category),
@@ -211,9 +209,111 @@ GROUP BY GROUPING SETS (
     (quarter_year, global_entity_id, brand_owner_name, front_facing_level_two),
 
     (quarter_year, global_entity_id, brand_name, front_facing_level_one),
-    (quarter_year, global_entity_id, brand_name, front_facing_level_two),
+    (quarter_year, global_entity_id, brand_name, front_facing_level_two)
+)
+),
+ytd_data AS (
+  SELECT
+    global_entity_id,
+    CONCAT('YTD-', CAST(ytd_year AS STRING)) AS time_period,
+    CASE
+        WHEN GROUPING(principal_supplier_id) = 0 THEN principal_supplier_id
+        WHEN GROUPING(supplier_id) = 0 THEN supplier_id
+        WHEN GROUPING(brand_owner_name) = 0 THEN brand_owner_name
+        WHEN GROUPING(brand_name) = 0 THEN brand_name
+        ELSE 'total'
+    END AS brand_sup,
+    COALESCE(
+      IF(GROUPING(l3_master_category) = 0, l3_master_category, NULL),
+      IF(GROUPING(l2_master_category) = 0, l2_master_category, NULL),
+      IF(GROUPING(l1_master_category) = 0, l1_master_category, NULL),
+      IF(GROUPING(front_facing_level_two) = 0, front_facing_level_two, NULL),
+      IF(GROUPING(front_facing_level_one) = 0, front_facing_level_one, NULL),
+      IF(GROUPING(brand_name) = 0, brand_name, NULL),
+      IF(GROUPING(brand_owner_name) = 0, brand_owner_name, NULL),
+      IF(GROUPING(supplier_id) = 0, supplier_id, NULL),
+      principal_supplier_id
+    ) AS entity_key,
+    CASE
+        WHEN GROUPING(principal_supplier_id) = 0 THEN 'principal'
+        WHEN GROUPING(supplier_id) = 0 THEN 'division'
+        WHEN GROUPING(brand_owner_name) = 0 THEN 'brand_owner'
+        WHEN GROUPING(brand_name) = 0 THEN 'brand_name'
+        ELSE 'total'
+    END AS division_type,
+    CASE
+        WHEN GROUPING(l3_master_category) = 0 THEN 'level_three'
+        WHEN GROUPING(l2_master_category) = 0 THEN 'level_two'
+        WHEN GROUPING(l1_master_category) = 0 THEN 'level_one'
+        WHEN GROUPING(front_facing_level_two) = 0 THEN 'front_facing_level_two'
+        WHEN GROUPING(front_facing_level_one) = 0 THEN 'front_facing_level_one'
+        WHEN GROUPING(brand_name) = 0 THEN 'brand_name'
+        ELSE 'supplier'
+    END AS supplier_level,
+    'YTD' AS time_granularity,
+    COUNT(DISTINCT analytical_customer_id) AS total_customers,
+    COUNT(DISTINCT sku_id) AS total_skus_sold,
+    COUNT(DISTINCT order_id) AS total_orders,
+    COUNT(DISTINCT warehouse_id) AS total_warehouses_sold,
+    ------------ EUR ----------------------------------------
+    CAST(ROUND(IFNULL(SUM(amt_total_price_paid_net_eur_dedup),0), 2) AS NUMERIC) AS Total_Net_Sales_eur_order,
+    CAST(ROUND(IFNULL(SUM(total_price_paid_net_eur),0), 2) AS NUMERIC) AS Net_Sales_eur,
+    CAST(ROUND(IFNULL(SUM(COGS_eur),0),4) AS NUMERIC) AS COGS_eur,
+    CAST(ROUND(IFNULL(SUM(CASE WHEN unit_discount_amount_eur > 0 THEN total_price_paid_net_eur END),0),2) AS NUMERIC) AS Net_Sales_from_promo_eur,
+    CAST(ROUND(IFNULL(SUM(total_supplier_funding_eur),0),2) AS NUMERIC) AS total_supplier_funding_eur,
+    CAST(ROUND((SUM(total_price_paid_net_eur) - SUM(COGS_eur)), 2) AS NUMERIC) AS front_margin_amt_eur,
+    CAST(ROUND(IFNULL(SUM(total_discount_eur),0),4) AS NUMERIC) AS total_discount_eur,
+    CAST(ROUND(IFNULL(SAFE_DIVIDE(ROUND(IFNULL(SUM(CASE WHEN unit_discount_amount_eur > 0 THEN total_price_paid_net_eur END),0),2), ROUND(IFNULL(SUM(total_price_paid_net_eur),0), 2)), 0), 4) AS NUMERIC) AS Promo_GPV_contribution_eur,
+    ------------ LC ----------------------------------------
+    CAST(ROUND(IFNULL(SUM(amt_total_price_paid_net_lc_dedup),0), 2) AS NUMERIC) AS Total_Net_Sales_lc_order,
+    CAST(ROUND(IFNULL(SUM(total_price_paid_net_lc),0), 2) AS NUMERIC) AS Net_Sales_lc,
+    CAST(ROUND(IFNULL(SUM(COGS_lc),0), 4) AS NUMERIC) AS COGS_lc,
+    CAST(ROUND(IFNULL(SUM(CASE WHEN unit_discount_amount_lc > 0 THEN total_price_paid_net_lc END),0),2) AS NUMERIC) AS Net_Sales_from_promo_lc,
+    CAST(ROUND(IFNULL(SUM(total_supplier_funding_lc),0),2) AS NUMERIC) AS total_supplier_funding_lc,
+    CAST(ROUND((SUM(total_price_paid_net_lc) - SUM(COGS_lc)), 2) AS NUMERIC) AS front_margin_amt_lc,
+    CAST(ROUND(IFNULL(SUM(total_discount_lc),0), 4) AS NUMERIC) AS total_discount_lc,
+    CAST(ROUND(IFNULL(SAFE_DIVIDE(ROUND(IFNULL(SUM(CASE WHEN unit_discount_amount_lc > 0 THEN total_price_paid_net_lc END),0),2), ROUND(IFNULL(SUM(total_price_paid_net_lc),0), 2)), 0), 4) AS NUMERIC) AS Promo_GPV_contribution_lc,
+    ------- Other aggregated metrics ---------------
+    CAST(ROUND(SUM (amt_gbv_eur_dedup),2) AS NUMERIC) AS total_GBV,
+    CAST(ROUND(SUM (fulfilled_quantity),2) AS NUMERIC) AS fulfilled_quantity,
+  FROM (
+    SELECT
+      src.*,
+      -- FIX: ROW_NUMBER() marca la primera fila de cada order+supplier+mes
+      -- Solo esa fila contribuye al SUM de los campos basket-level
+      -- Las demás filas del mismo order+supplier reciben 0 → no inflan el SUM
+      CASE WHEN ROW_NUMBER() OVER (
+        PARTITION BY src.global_entity_id, src.order_id, src.supplier_id, src.month
+        ORDER BY src.sku_id  -- orden determinístico para reproducibilidad
+      ) = 1
+      THEN src.amt_total_price_paid_net_eur ELSE 0 END AS amt_total_price_paid_net_eur_dedup,
 
-    -- 4. FRONT-FACING CATEGORY DEEP-DIVE (YTD)
+      CASE WHEN ROW_NUMBER() OVER (
+        PARTITION BY src.global_entity_id, src.order_id, src.supplier_id, src.month
+        ORDER BY src.sku_id
+      ) = 1
+      THEN src.amt_total_price_paid_net_lc ELSE 0 END AS amt_total_price_paid_net_lc_dedup,
+
+      CASE WHEN ROW_NUMBER() OVER (
+        PARTITION BY src.global_entity_id, src.order_id, src.supplier_id, src.month
+        ORDER BY src.sku_id
+      ) = 1
+      THEN src.amt_gbv_eur ELSE 0 END AS amt_gbv_eur_dedup
+
+    FROM `dh-darkstores-live.csm_automated_tables.ytd_sps_financial_metrics_month` AS src
+WHERE (
+    (EXTRACT(YEAR FROM DATE(src.month)) = (SELECT current_year FROM date_config)
+     AND DATE(src.month) <= (SELECT today FROM date_config))
+    OR
+    (EXTRACT(YEAR FROM DATE(src.month)) = (SELECT prior_year FROM date_config)
+     AND DATE(src.month) <= DATE_SUB((SELECT today FROM date_config), INTERVAL 1 YEAR))
+  )
+  AND REGEXP_CONTAINS(src.global_entity_id, param_global_entity_id)
+  )
+GROUP BY GROUPING SETS (
+    -- ==========================================================
+    -- FRONT-FACING CATEGORY DEEP-DIVE (YTD)
+    -- ==========================================================
     (ytd_year, global_entity_id, principal_supplier_id, front_facing_level_one),
     (ytd_year, global_entity_id, principal_supplier_id, front_facing_level_two),
     (ytd_year, global_entity_id, supplier_id, front_facing_level_one),
@@ -256,7 +356,11 @@ SELECT
   CAST(ROUND(SAFE_DIVIDE(cy.Net_Sales_lc - ly.Net_Sales_lc_LY, NULLIF(ly.Net_Sales_lc_LY, 0)), 3) AS NUMERIC) AS YoY_GPV_Growth_lc,
   CAST(ROUND(SAFE_DIVIDE(cy.Net_Sales_eur + cy.total_supplier_funding_eur - cy.COGS_eur , NULLIF(cy.Net_Sales_eur, 0)), 4) AS NUMERIC) AS Front_Margin_eur,
   CAST(ROUND(SAFE_DIVIDE(cy.Net_Sales_lc + cy.total_supplier_funding_lc - cy.COGS_lc , NULLIF(cy.Net_Sales_lc, 0)), 4) AS NUMERIC) AS Front_Margin_lc,
-FROM current_year_data cy
+FROM (
+  SELECT * FROM monthly_quarterly_data
+  UNION ALL
+  SELECT * FROM ytd_data
+) cy
 LEFT JOIN `dh-darkstores-live.csm_automated_tables.ytd_sps_financial_metrics_prev_year` ly
   ON cy.global_entity_id = ly.global_entity_id
   AND cy.brand_sup = ly.brand_sup
