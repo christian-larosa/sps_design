@@ -75,8 +75,7 @@ WITH date_config AS (
   FROM `dh-darkstores-live.csm_automated_tables.ytd_sps_price_index_month`
   WHERE (EXTRACT(YEAR FROM CAST(price_index_month AS DATE)) = (SELECT current_year FROM date_config)
          AND CAST(price_index_month AS DATE) <= (SELECT today FROM date_config))
-    OR (EXTRACT(YEAR FROM CAST(price_index_month AS DATE)) = (SELECT prior_year FROM date_config)
-        AND CAST(price_index_month AS DATE) <= DATE_SUB((SELECT today FROM date_config), INTERVAL 1 YEAR))
+    OR (EXTRACT(YEAR FROM CAST(price_index_month AS DATE)) = (SELECT prior_year FROM date_config))
   GROUP BY GROUPING SETS (
     -- ==========================================================
     -- MONTHLY BREAKDOWNS (month)

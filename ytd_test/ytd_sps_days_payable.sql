@@ -87,14 +87,11 @@ SELECT
   CASE
     WHEN GROUPING(stock_days_month) = 0 THEN SAFE_SUBTRACT(MAX(payment_days), SAFE_DIVIDE(SUM(sku_month_end_stock_value_eur), SAFE_DIVIDE(SUM(sku_cogs_eur_monthy), MAX(days_in_month))))
     ELSE SAFE_SUBTRACT(MAX(payment_days), SAFE_DIVIDE(SUM(sku_month_end_stock_value_eur), SAFE_DIVIDE(SUM(sku_cogs_eur_monthy), MAX(days_in_quarter) / 3)))
-  END AS dpo,
-  front_facing_level_one,
-  front_facing_level_two
+  END AS dpo
 FROM `dh-darkstores-live.csm_automated_tables.ytd_sps_days_payable_month`
 WHERE (EXTRACT(YEAR FROM CAST(stock_days_month AS DATE)) = (SELECT current_year FROM date_config)
        AND CAST(stock_days_month AS DATE) <= (SELECT today FROM date_config))
-  OR (EXTRACT(YEAR FROM CAST(stock_days_month AS DATE)) = (SELECT prior_year FROM date_config)
-      AND CAST(stock_days_month AS DATE) <= DATE_SUB((SELECT today FROM date_config), INTERVAL 1 YEAR))
+  OR (EXTRACT(YEAR FROM CAST(stock_days_month AS DATE)) = (SELECT prior_year FROM date_config))
 GROUP BY GROUPING SETS (
     -- ==========================================================
     -- MONTHLY BREAKDOWNS (month)

@@ -116,8 +116,7 @@ WHERE (
     (EXTRACT(YEAR FROM DATE(src.month)) = (SELECT current_year FROM date_config)
      AND DATE(src.month) <= (SELECT today FROM date_config))
     OR
-    (EXTRACT(YEAR FROM DATE(src.month)) = (SELECT prior_year FROM date_config)
-     AND DATE(src.month) <= DATE_SUB((SELECT today FROM date_config), INTERVAL 1 YEAR))
+    (EXTRACT(YEAR FROM DATE(src.month)) = (SELECT prior_year FROM date_config))
   )
   AND REGEXP_CONTAINS(src.global_entity_id, param_global_entity_id)
   )

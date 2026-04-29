@@ -51,7 +51,7 @@ filtered AS (
   FROM base b
   CROSS JOIN date_config d
   WHERE (EXTRACT(YEAR FROM b.month_date) = d.current_year AND b.month_date <= d.today)
-    OR (EXTRACT(YEAR FROM b.month_date) = d.prior_year AND b.month_date <= DATE_SUB(d.today, INTERVAL 1 YEAR))
+    OR (EXTRACT(YEAR FROM b.month_date) = d.prior_year)
 )
 SELECT
   global_entity_id,

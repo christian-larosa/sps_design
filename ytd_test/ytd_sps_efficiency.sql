@@ -64,8 +64,7 @@ sku_counts AS (
   FROM `dh-darkstores-live.csm_automated_tables.ytd_sps_efficiency_month`
   WHERE (EXTRACT(YEAR FROM CAST(month AS DATE)) = (SELECT current_year FROM date_config)
          AND CAST(month AS DATE) <= (SELECT today FROM date_config))
-    OR (EXTRACT(YEAR FROM CAST(month AS DATE)) = (SELECT prior_year FROM date_config)
-        AND CAST(month AS DATE) <= DATE_SUB((SELECT today FROM date_config), INTERVAL 1 YEAR))
+    OR (EXTRACT(YEAR FROM CAST(month AS DATE)) = (SELECT prior_year FROM date_config))
   GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13
 ),
 
@@ -119,8 +118,7 @@ efficiency_by_warehouse AS (
   FROM `dh-darkstores-live.csm_automated_tables.ytd_sps_efficiency_month`
   WHERE (EXTRACT(YEAR FROM CAST(month AS DATE)) = (SELECT current_year FROM date_config)
          AND CAST(month AS DATE) <= (SELECT today FROM date_config))
-    OR (EXTRACT(YEAR FROM CAST(month AS DATE)) = (SELECT prior_year FROM date_config)
-        AND CAST(month AS DATE) <= DATE_SUB((SELECT today FROM date_config), INTERVAL 1 YEAR))
+    OR (EXTRACT(YEAR FROM CAST(month AS DATE)) = (SELECT prior_year FROM date_config))
   GROUP BY
     global_entity_id,
     month,

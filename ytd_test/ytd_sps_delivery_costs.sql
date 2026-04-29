@@ -63,14 +63,11 @@ SELECT
          ELSE 'YTD'
     END AS time_granularity,
   SUM(allocated_delivery_cost_eur) AS delivery_cost_eur,
-  SUM(allocated_delivery_cost_local) AS delivery_cost_local,
-  front_facing_level_one,
-  front_facing_level_two
+  SUM(allocated_delivery_cost_local) AS delivery_cost_local
 FROM `dh-darkstores-live.csm_automated_tables.ytd_sps_delivery_costs_month`
 WHERE (EXTRACT(YEAR FROM CAST(month AS DATE)) = (SELECT current_year FROM date_config)
        AND CAST(month AS DATE) <= (SELECT today FROM date_config))
-  OR (EXTRACT(YEAR FROM CAST(month AS DATE)) = (SELECT prior_year FROM date_config)
-      AND CAST(month AS DATE) <= DATE_SUB((SELECT today FROM date_config), INTERVAL 1 YEAR))
+  OR (EXTRACT(YEAR FROM CAST(month AS DATE)) = (SELECT prior_year FROM date_config))
 GROUP BY GROUPING SETS (
     -- ==========================================================
     -- MONTHLY BREAKDOWNS (month)
