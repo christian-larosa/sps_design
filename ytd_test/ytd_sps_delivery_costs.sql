@@ -9,22 +9,22 @@ DECLARE param_date_end         DATE   DEFAULT CURRENT_DATE();
 
 CREATE OR REPLACE TABLE `dh-darkstores-live.csm_automated_tables.ytd_sps_delivery_costs`
 CLUSTER BY
-   global_entity_id, 
+   global_entity_id,
    time_period
-AS 
+AS
 WITH date_config AS (
   SELECT
     CURRENT_DATE() as today,
     EXTRACT(YEAR FROM CURRENT_DATE()) as current_year,
     EXTRACT(YEAR FROM CURRENT_DATE()) - 1 as prior_year
-)
-SELECT
+),
+monthly_quarterly_data AS (
+  SELECT
   global_entity_id,
   CASE WHEN GROUPING(month) = 0 THEN CAST(month AS STRING)
-         WHEN GROUPING(quarter_year) = 0 THEN quarter_year
-         ELSE CONCAT("YTD-", CAST(ytd_year AS STRING))
+       WHEN GROUPING(quarter_year) = 0 THEN quarter_year
     END AS time_period,
-    CASE 
+    CASE
         WHEN GROUPING(principal_supplier_id) = 0 THEN principal_supplier_id
         WHEN GROUPING(supplier_id) = 0 THEN supplier_id
         WHEN GROUPING(brand_owner_name) = 0 THEN brand_owner_name
@@ -42,156 +42,168 @@ SELECT
       IF(GROUPING(supplier_id) = 0, supplier_id, NULL),
       principal_supplier_id
     ) AS entity_key,
-    CASE 
-        WHEN GROUPING(principal_supplier_id) = 0 THEN 'principal' 
-        WHEN GROUPING(supplier_id) = 0 THEN 'division' 
-        WHEN GROUPING(brand_owner_name) = 0 THEN 'brand_owner' 
+    CASE
+        WHEN GROUPING(principal_supplier_id) = 0 THEN 'principal'
+        WHEN GROUPING(supplier_id) = 0 THEN 'division'
+        WHEN GROUPING(brand_owner_name) = 0 THEN 'brand_owner'
         WHEN GROUPING(brand_name) = 0 THEN 'brand_name'
         ELSE 'total'
     END AS division_type,
-    CASE 
-        WHEN GROUPING(l3_master_category) = 0 THEN 'level_three' 
-        WHEN GROUPING(l2_master_category) = 0 THEN 'level_two' 
+    CASE
+        WHEN GROUPING(l3_master_category) = 0 THEN 'level_three'
+        WHEN GROUPING(l2_master_category) = 0 THEN 'level_two'
         WHEN GROUPING(l1_master_category) = 0 THEN 'level_one'
         WHEN GROUPING(front_facing_level_two) = 0 THEN 'front_facing_level_two'
-        WHEN GROUPING(front_facing_level_one) = 0 THEN 'front_facing_level_one' 
+        WHEN GROUPING(front_facing_level_one) = 0 THEN 'front_facing_level_one'
         WHEN GROUPING(brand_name) = 0 THEN 'brand_name'
-        ELSE 'supplier' 
+        ELSE 'supplier'
     END AS supplier_level,
   CASE WHEN GROUPING(month) = 0 THEN 'Monthly'
-         WHEN GROUPING(quarter_year) = 0 THEN 'Quarterly'
-         ELSE 'YTD'
+       WHEN GROUPING(quarter_year) = 0 THEN 'Quarterly'
     END AS time_granularity,
-  SUM(allocated_delivery_cost_eur) AS delivery_cost_eur,
-  SUM(allocated_delivery_cost_local) AS delivery_cost_local
-FROM `dh-darkstores-live.csm_automated_tables.ytd_sps_delivery_costs_month`
-WHERE (EXTRACT(YEAR FROM CAST(month AS DATE)) = (SELECT current_year FROM date_config)
-       AND CAST(month AS DATE) <= (SELECT today FROM date_config))
-  OR (EXTRACT(YEAR FROM CAST(month AS DATE)) = (SELECT prior_year FROM date_config))
-GROUP BY GROUPING SETS (
-    -- ==========================================================
-    -- MONTHLY BREAKDOWNS (month)
-    -- ==========================================================
-    
-    -- 1. TOTAL OWNER LEVEL (No Category/Brand Deep-dive)
-    (month, global_entity_id, principal_supplier_id),
-    (month, global_entity_id, supplier_id),
-    (month, global_entity_id, brand_owner_name),
+    SUM(allocated_delivery_cost_eur) AS delivery_cost_eur,
+    SUM(allocated_delivery_cost_local) AS delivery_cost_local
+  FROM `dh-darkstores-live.csm_automated_tables.ytd_sps_delivery_costs_month`
+  WHERE (EXTRACT(YEAR FROM CAST(month AS DATE)) = (SELECT current_year FROM date_config)
+         AND CAST(month AS DATE) <= (SELECT today FROM date_config))
+    OR (EXTRACT(YEAR FROM CAST(month AS DATE)) = (SELECT prior_year FROM date_config))
+  GROUP BY GROUPING SETS (
+      -- MONTHLY BREAKDOWNS (month)
+      (month, global_entity_id, principal_supplier_id),
+      (month, global_entity_id, supplier_id),
+      (month, global_entity_id, brand_owner_name),
+      (month, global_entity_id, principal_supplier_id, brand_name),
+      (month, global_entity_id, supplier_id, brand_name),
+      (month, global_entity_id, brand_owner_name, brand_name),
+      (month, global_entity_id, brand_name),
+      (month, global_entity_id, principal_supplier_id, l1_master_category),
+      (month, global_entity_id, principal_supplier_id, l2_master_category),
+      (month, global_entity_id, principal_supplier_id, l3_master_category),
+      (month, global_entity_id, supplier_id, l1_master_category),
+      (month, global_entity_id, supplier_id, l2_master_category),
+      (month, global_entity_id, supplier_id, l3_master_category),
+      (month, global_entity_id, brand_owner_name, l1_master_category),
+      (month, global_entity_id, brand_owner_name, l2_master_category),
+      (month, global_entity_id, brand_owner_name, l3_master_category),
+      (month, global_entity_id, brand_name, l1_master_category),
+      (month, global_entity_id, brand_name, l2_master_category),
+      (month, global_entity_id, brand_name, l3_master_category),
+      (month, global_entity_id, principal_supplier_id, front_facing_level_one),
+      (month, global_entity_id, principal_supplier_id, front_facing_level_two),
+      (month, global_entity_id, supplier_id, front_facing_level_one),
+      (month, global_entity_id, supplier_id, front_facing_level_two),
+      (month, global_entity_id, brand_owner_name, front_facing_level_one),
+      (month, global_entity_id, brand_owner_name, front_facing_level_two),
+      (month, global_entity_id, brand_name, front_facing_level_one),
+      (month, global_entity_id, brand_name, front_facing_level_two),
+      -- QUARTERLY BREAKDOWNS (quarter_year)
+      (quarter_year, global_entity_id, principal_supplier_id),
+      (quarter_year, global_entity_id, supplier_id),
+      (quarter_year, global_entity_id, brand_owner_name),
+      (quarter_year, global_entity_id, principal_supplier_id, brand_name),
+      (quarter_year, global_entity_id, supplier_id, brand_name),
+      (quarter_year, global_entity_id, brand_owner_name, brand_name),
+      (quarter_year, global_entity_id, brand_name),
+      (quarter_year, global_entity_id, principal_supplier_id, l1_master_category),
+      (quarter_year, global_entity_id, principal_supplier_id, l2_master_category),
+      (quarter_year, global_entity_id, principal_supplier_id, l3_master_category),
+      (quarter_year, global_entity_id, supplier_id, l1_master_category),
+      (quarter_year, global_entity_id, supplier_id, l2_master_category),
+      (quarter_year, global_entity_id, supplier_id, l3_master_category),
+      (quarter_year, global_entity_id, brand_owner_name, l1_master_category),
+      (quarter_year, global_entity_id, brand_owner_name, l2_master_category),
+      (quarter_year, global_entity_id, brand_owner_name, l3_master_category),
+      (quarter_year, global_entity_id, brand_name, l1_master_category),
+      (quarter_year, global_entity_id, brand_name, l2_master_category),
+      (quarter_year, global_entity_id, brand_name, l3_master_category),
+      (quarter_year, global_entity_id, principal_supplier_id, front_facing_level_one),
+      (quarter_year, global_entity_id, principal_supplier_id, front_facing_level_two),
+      (quarter_year, global_entity_id, supplier_id, front_facing_level_one),
+      (quarter_year, global_entity_id, supplier_id, front_facing_level_two),
+      (quarter_year, global_entity_id, brand_owner_name, front_facing_level_one),
+      (quarter_year, global_entity_id, brand_owner_name, front_facing_level_two),
+      (quarter_year, global_entity_id, brand_name, front_facing_level_one),
+      (quarter_year, global_entity_id, brand_name, front_facing_level_two)
+  )
+),
+ytd_data AS (
+  SELECT
+    global_entity_id,
+    CONCAT("YTD-", CAST(ytd_year AS STRING)) AS time_period,
+      CASE
+          WHEN GROUPING(principal_supplier_id) = 0 THEN principal_supplier_id
+          WHEN GROUPING(supplier_id) = 0 THEN supplier_id
+          WHEN GROUPING(brand_owner_name) = 0 THEN brand_owner_name
+          WHEN GROUPING(brand_name) = 0 THEN brand_name
+          ELSE 'total'
+      END AS brand_sup,
+      COALESCE(
+        IF(GROUPING(l3_master_category) = 0, l3_master_category, NULL),
+        IF(GROUPING(l2_master_category) = 0, l2_master_category, NULL),
+        IF(GROUPING(l1_master_category) = 0, l1_master_category, NULL),
+        IF(GROUPING(front_facing_level_two) = 0, front_facing_level_two, NULL),
+        IF(GROUPING(front_facing_level_one) = 0, front_facing_level_one, NULL),
+        IF(GROUPING(brand_name) = 0, brand_name, NULL),
+        IF(GROUPING(brand_owner_name) = 0, brand_owner_name, NULL),
+        IF(GROUPING(supplier_id) = 0, supplier_id, NULL),
+        principal_supplier_id
+      ) AS entity_key,
+      CASE
+          WHEN GROUPING(principal_supplier_id) = 0 THEN 'principal'
+          WHEN GROUPING(supplier_id) = 0 THEN 'division'
+          WHEN GROUPING(brand_owner_name) = 0 THEN 'brand_owner'
+          WHEN GROUPING(brand_name) = 0 THEN 'brand_name'
+          ELSE 'total'
+      END AS division_type,
+      CASE
+          WHEN GROUPING(l3_master_category) = 0 THEN 'level_three'
+          WHEN GROUPING(l2_master_category) = 0 THEN 'level_two'
+          WHEN GROUPING(l1_master_category) = 0 THEN 'level_one'
+          WHEN GROUPING(front_facing_level_two) = 0 THEN 'front_facing_level_two'
+          WHEN GROUPING(front_facing_level_one) = 0 THEN 'front_facing_level_one'
+          WHEN GROUPING(brand_name) = 0 THEN 'brand_name'
+          ELSE 'supplier'
+      END AS supplier_level,
+    'YTD' AS time_granularity,
+    SUM(allocated_delivery_cost_eur) AS delivery_cost_eur,
+    SUM(allocated_delivery_cost_local) AS delivery_cost_local
+  FROM `dh-darkstores-live.csm_automated_tables.ytd_sps_delivery_costs_month`
+  WHERE (EXTRACT(YEAR FROM CAST(month AS DATE)) = (SELECT current_year FROM date_config)
+         AND CAST(month AS DATE) <= (SELECT today FROM date_config))
+    OR (EXTRACT(YEAR FROM CAST(month AS DATE)) = (SELECT prior_year FROM date_config)
+         AND CAST(month AS DATE) <= DATE_SUB((SELECT today FROM date_config), INTERVAL 1 YEAR))
+  GROUP BY GROUPING SETS (
+      -- YTD BREAKDOWNS (ytd_year)
+      (ytd_year, global_entity_id, principal_supplier_id),
+      (ytd_year, global_entity_id, supplier_id),
+      (ytd_year, global_entity_id, brand_owner_name),
+      (ytd_year, global_entity_id, principal_supplier_id, brand_name),
+      (ytd_year, global_entity_id, supplier_id, brand_name),
+      (ytd_year, global_entity_id, brand_owner_name, brand_name),
+      (ytd_year, global_entity_id, brand_name),
+      (ytd_year, global_entity_id, principal_supplier_id, l1_master_category),
+      (ytd_year, global_entity_id, principal_supplier_id, l2_master_category),
+      (ytd_year, global_entity_id, principal_supplier_id, l3_master_category),
+      (ytd_year, global_entity_id, supplier_id, l1_master_category),
+      (ytd_year, global_entity_id, supplier_id, l2_master_category),
+      (ytd_year, global_entity_id, supplier_id, l3_master_category),
+      (ytd_year, global_entity_id, brand_owner_name, l1_master_category),
+      (ytd_year, global_entity_id, brand_owner_name, l2_master_category),
+      (ytd_year, global_entity_id, brand_owner_name, l3_master_category),
+      (ytd_year, global_entity_id, brand_name, l1_master_category),
+      (ytd_year, global_entity_id, brand_name, l2_master_category),
+      (ytd_year, global_entity_id, brand_name, l3_master_category),
+      (ytd_year, global_entity_id, principal_supplier_id, front_facing_level_one),
+      (ytd_year, global_entity_id, principal_supplier_id, front_facing_level_two),
+      (ytd_year, global_entity_id, supplier_id, front_facing_level_one),
+      (ytd_year, global_entity_id, supplier_id, front_facing_level_two),
+      (ytd_year, global_entity_id, brand_owner_name, front_facing_level_one),
+      (ytd_year, global_entity_id, brand_owner_name, front_facing_level_two),
+      (ytd_year, global_entity_id, brand_name, front_facing_level_one),
+      (ytd_year, global_entity_id, brand_name, front_facing_level_two)
+  )
+)
 
-    -- 2. BRAND DEEP-DIVE (By Owner + Brand Name)
-    (month, global_entity_id, principal_supplier_id, brand_name),
-    (month, global_entity_id, supplier_id, brand_name),
-    (month, global_entity_id, brand_owner_name, brand_name),
-    (month, global_entity_id, brand_name), 
-
-    -- 3. CATEGORY DEEP-DIVE (By Owner + Categories)
-    (month, global_entity_id, principal_supplier_id, l1_master_category),
-    (month, global_entity_id, principal_supplier_id, l2_master_category),
-    (month, global_entity_id, principal_supplier_id, l3_master_category),
-
-    (month, global_entity_id, supplier_id, l1_master_category),
-    (month, global_entity_id, supplier_id, l2_master_category),
-    (month, global_entity_id, supplier_id, l3_master_category),
-
-    (month, global_entity_id, brand_owner_name, l1_master_category),
-    (month, global_entity_id, brand_owner_name, l2_master_category),
-    (month, global_entity_id, brand_owner_name, l3_master_category),
-
-    (month, global_entity_id, brand_name, l1_master_category),
-    (month, global_entity_id, brand_name, l2_master_category),
-    (month, global_entity_id, brand_name, l3_master_category),
-
-    -- 4. FRONT-FACING LEVEL DEEP-DIVE
-    (month, global_entity_id, principal_supplier_id, front_facing_level_one),
-    (month, global_entity_id, principal_supplier_id, front_facing_level_two),
-    (month, global_entity_id, supplier_id, front_facing_level_one),
-    (month, global_entity_id, supplier_id, front_facing_level_two),
-    (month, global_entity_id, brand_owner_name, front_facing_level_one),
-    (month, global_entity_id, brand_owner_name, front_facing_level_two),
-    (month, global_entity_id, brand_name, front_facing_level_one),
-    (month, global_entity_id, brand_name, front_facing_level_two),
-
-    -- ==========================================================
-    -- QUARTERLY BREAKDOWNS (quarter_year)
-    -- ==========================================================
-    
-    -- 1. TOTAL OWNER LEVEL
-    (quarter_year, global_entity_id, principal_supplier_id),
-    (quarter_year, global_entity_id, supplier_id),
-    (quarter_year, global_entity_id, brand_owner_name),
-
-    -- 2. BRAND DEEP-DIVE
-    (quarter_year, global_entity_id, principal_supplier_id, brand_name),
-    (quarter_year, global_entity_id, supplier_id, brand_name),
-    (quarter_year, global_entity_id, brand_owner_name, brand_name),
-    (quarter_year, global_entity_id, brand_name),
-
-    -- 3. CATEGORY DEEP-DIVE
-    (quarter_year, global_entity_id, principal_supplier_id, l1_master_category),
-    (quarter_year, global_entity_id, principal_supplier_id, l2_master_category),
-    (quarter_year, global_entity_id, principal_supplier_id, l3_master_category),
-
-    (quarter_year, global_entity_id, supplier_id, l1_master_category),
-    (quarter_year, global_entity_id, supplier_id, l2_master_category),
-    (quarter_year, global_entity_id, supplier_id, l3_master_category),
-
-    (quarter_year, global_entity_id, brand_owner_name, l1_master_category),
-    (quarter_year, global_entity_id, brand_owner_name, l2_master_category),
-    (quarter_year, global_entity_id, brand_owner_name, l3_master_category),
-
-    (quarter_year, global_entity_id, brand_name, l1_master_category),
-    (quarter_year, global_entity_id, brand_name, l2_master_category),
-    (quarter_year, global_entity_id, brand_name, l3_master_category),
-
-    -- 4. FRONT-FACING LEVEL DEEP-DIVE
-    (quarter_year, global_entity_id, principal_supplier_id, front_facing_level_one),
-    (quarter_year, global_entity_id, principal_supplier_id, front_facing_level_two),
-    (quarter_year, global_entity_id, supplier_id, front_facing_level_one),
-    (quarter_year, global_entity_id, supplier_id, front_facing_level_two),
-    (quarter_year, global_entity_id, brand_owner_name, front_facing_level_one),
-    (quarter_year, global_entity_id, brand_owner_name, front_facing_level_two),
-    (quarter_year, global_entity_id, brand_name, front_facing_level_one),
-    (quarter_year, global_entity_id, brand_name, front_facing_level_two),
-
-    -- ==========================================================
-    -- YTD BREAKDOWNS (ytd_year)
-    -- ==========================================================
-
-    -- 1. TOTAL OWNER LEVEL
-    (ytd_year, global_entity_id, principal_supplier_id),
-    (ytd_year, global_entity_id, supplier_id),
-    (ytd_year, global_entity_id, brand_owner_name),
-
-    -- 2. BRAND DEEP-DIVE
-    (ytd_year, global_entity_id, principal_supplier_id, brand_name),
-    (ytd_year, global_entity_id, supplier_id, brand_name),
-    (ytd_year, global_entity_id, brand_owner_name, brand_name),
-    (ytd_year, global_entity_id, brand_name),
-
-    -- 3. CATEGORY DEEP-DIVE
-    (ytd_year, global_entity_id, principal_supplier_id, l1_master_category),
-    (ytd_year, global_entity_id, principal_supplier_id, l2_master_category),
-    (ytd_year, global_entity_id, principal_supplier_id, l3_master_category),
-
-    (ytd_year, global_entity_id, supplier_id, l1_master_category),
-    (ytd_year, global_entity_id, supplier_id, l2_master_category),
-    (ytd_year, global_entity_id, supplier_id, l3_master_category),
-
-    (ytd_year, global_entity_id, brand_owner_name, l1_master_category),
-    (ytd_year, global_entity_id, brand_owner_name, l2_master_category),
-    (ytd_year, global_entity_id, brand_owner_name, l3_master_category),
-
-    (ytd_year, global_entity_id, brand_name, l1_master_category),
-    (ytd_year, global_entity_id, brand_name, l2_master_category),
-    (ytd_year, global_entity_id, brand_name, l3_master_category),
-
-    -- 4. FRONT-FACING LEVEL DEEP-DIVE
-    (ytd_year, global_entity_id, principal_supplier_id, front_facing_level_one),
-    (ytd_year, global_entity_id, principal_supplier_id, front_facing_level_two),
-    (ytd_year, global_entity_id, supplier_id, front_facing_level_one),
-    (ytd_year, global_entity_id, supplier_id, front_facing_level_two),
-    (ytd_year, global_entity_id, brand_owner_name, front_facing_level_one),
-    (ytd_year, global_entity_id, brand_owner_name, front_facing_level_two),
-    (ytd_year, global_entity_id, brand_name, front_facing_level_one),
-    (ytd_year, global_entity_id, brand_name, front_facing_level_two)
-);
+SELECT * FROM monthly_quarterly_data
+UNION ALL
+SELECT * FROM ytd_data;
